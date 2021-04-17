@@ -8,8 +8,8 @@ tags = ["haskell"]
 
 # The challenge
 
-Can we check if instance exists and acquire its dictionary without defining boilerplate instances by
-hand, like [constraint-unions](https://github.com/rampion/constraint-unions) suggests, or using
+Can we check if an instance exists and acquire its dictionary without defining boilerplate instances
+by hand, like [constraint-unions](https://github.com/rampion/constraint-unions) suggests, or using
 template haskell to generate them, like [ifctx](https://github.com/mikeizbicki/ifcxt) does?
 
 In other words, can we define

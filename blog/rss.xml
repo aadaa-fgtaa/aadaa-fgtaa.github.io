@@ -15,8 +15,8 @@
             <guid>https://aadaa-fgtaa.github.io/blog/optionally/</guid>
             <description>&lt;h1 id=&quot;the-challenge&quot;&gt;The challenge&lt;a class=&quot;zola-anchor&quot; href=&quot;#the-challenge&quot; aria-label=&quot;Anchor link for: the-challenge&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
-&lt;p&gt;Can we check if instance exists and acquire its dictionary without defining boilerplate instances by
-hand, like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rampion&#x2F;constraint-unions&quot;&gt;constraint-unions&lt;&#x2F;a&gt; suggests, or using
+&lt;p&gt;Can we check if an instance exists and acquire its dictionary without defining boilerplate instances
+by hand, like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rampion&#x2F;constraint-unions&quot;&gt;constraint-unions&lt;&#x2F;a&gt; suggests, or using
 template haskell to generate them, like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;mikeizbicki&#x2F;ifcxt&quot;&gt;ifctx&lt;&#x2F;a&gt; does?&lt;&#x2F;p&gt;
 &lt;p&gt;In other words, can we define&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
