@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head><title>Checking for uncheckable: optional constraints - aadaa_fgtaa</title>
+    
+    
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+    <meta name="description" content=""/>
+
+    <meta property="og:title" content="
+    aadaa_fgtaa -&nbsp;Checking for uncheckable: optional constraints" />
+    <meta property="og:type" content="website"/>
+    <meta property="og:url" content="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;optionally&#x2F;"/>
+    <meta property="og:description" content=""/><meta property="og:image" content="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;favicon.png"/>
+    <link rel="stylesheet" href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;style.css">
+    <link rel="stylesheet" href=" https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;color&#x2F;orange.css">
+    
+<link rel="shortcut icon" href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;favicon.png" type="image/x-icon" /><link rel="alternate" type="application/rss+xml" title="aadaa_fgtaa RSS" href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;rss.xml"></head>
+    <body>
+        <div class="container center">
+<header class="header">
+    <div class="header__inner">
+        <div class="header__logo">
+            <a href="&#x2F;">
+    <div class="logo">
+        aadaa_fgtaa :: Blog
+    </div>
+</a>
+        </div>
+        <div class="menu-trigger">menu</div>
+        
+    <nav class="menu">
+        <ul class="menu__inner menu__inner--desktop">
+            
+            
+                    <div class="menu-trigger">
+                        <a href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog" style="text-decoration:none;">articles</a>
+                    </div>
+                
+                    <div class="menu-trigger">
+                        <a href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;tags" style="text-decoration:none;">articles by tags</a>
+                    </div>
+                
+                    <div class="menu-trigger">
+                        <a href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;about" style="text-decoration:none;">about</a>
+                    </div>
+                
+            </ul>
+
+        <ul class="menu__inner menu__inner--mobile">
+            
+        <li class="menu_item">
+            <a href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog" style="text-decoration:none;">articles</a>
+        </li>
+        <li class="menu_item">
+            <a href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;tags" style="text-decoration:none;">articles by tags</a>
+        </li>
+        <li class="menu_item">
+            <a href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;about" style="text-decoration:none;">about</a>
+        </li>
+        </ul>
+    </nav>
+
+        </div>
+</header>
+<div class="content"><div class="post">
+        <h1 class="post-title">
+            <a href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;optionally&#x2F;">Checking for uncheckable: optional constraints</a>
+        </h1>
+        
+    <div class="post-meta">
+        <span class="post-date">2021.04.17
+                </span>
+
+        <span class="post-author"></span>
+
+        
+
+    
+    #<a href="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;tags&#x2F;haskell&#x2F;">haskell</a>
+        
+    
+            
+        
+    
+    </div>
+
+
+        
+
+        <div class="post-content">
+            <h1 id="the-challenge">The challenge<a class="zola-anchor" href="#the-challenge" aria-label="Anchor link for: the-challenge">§</a>
+</h1>
+<p>Can we check if instance exists and acquire its dictionary without defining boilerplate instances by
+hand, like <a href="https://github.com/rampion/constraint-unions">constraint-unions</a> suggests, or using
+template haskell to generate them, like <a href="https://github.com/mikeizbicki/ifcxt">ifctx</a> does?</p>
+<p>In other words, can we define</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Optionally </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+  </span><span style="color:#ffb454;">optionalDict </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Maybe</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c)
+</span></code></pre>
+<p>that is always satisfied for concrete <code>c</code>, like e.g. <code>Typeable</code> does, such that <code>optionalDict</code> would
+return <code>Just Dict</code> if constraint <code>c</code> is satisfied at call side?</p>
+<p>I found a solution that I think is interesting and in some sense beautiful (and at the same time an
+ugly hack), so I decided to write about it.</p>
+<blockquote>
+<p><strong>DISCLAIMER</strong> This trick definitely shouldn't be used for anything serious, it's just an abuse of
+ghc unspecified behaviour. Don't repeat this at home!</p>
+</blockquote>
+<blockquote>
+<p><strong>NOTE</strong> I assume that you are familiar with ghc core, especially with the representation of type
+classes and instances. If you are not, <a href="https://www.youtube.com/watch?v=fty9QL4aSRc">this talk</a> by
+Vladislav Zavialov may be a good introduction.</p>
+</blockquote>
+<h1 id="constraint-solver-and-known-dictionaries">Constraint solver and known dictionaries<a class="zola-anchor" href="#constraint-solver-and-known-dictionaries" aria-label="Anchor link for: constraint-solver-and-known-dictionaries">§</a>
+</h1>
+<p>As you probably know, ghc is usually very stubborn about constraints: once constraint is introduced
+as wanted, ghc would solve it or throw compilation error if failed. This makes checking for
+instance's existence difficult.</p>
+<p>Still there are some cases when ghc behaves differently depending on instance being defined, so
+these both cases don't cause compilation error. One of the cases is that ghc prefers to solve a
+constraint with a top-level dictionary rather than local one passed to a function, as long as
+optimisations are enabled.</p>
+<p>For example, in the following code</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">test </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Eq Integer </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Eq Integer</span><span style="color:#bfbab0;">)
+test </span><span style="color:#f29668;">= </span><span style="color:#f29718;">Dict
+</span></code></pre>
+<p>ghc with <code>-O</code> would just ignore passed constraint and use top-level <code>$fEqInteger</code> instead</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">test1 </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Eq Integer</span><span style="color:#bfbab0;">)
+test1 </span><span style="color:#f29668;">= </span><span style="color:#f29718;">Dict </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;">fEqInteger
+
+</span><span style="color:#ffb454;">test </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Eq Integer </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Eq Integer</span><span style="color:#bfbab0;">)
+test </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> _ </span><span style="color:#f29668;">-&gt;</span><span style="color:#bfbab0;"> test1
+</span></code></pre>
+<p>Using this fact we can check if an instance exists by defining such <code>test</code> function, passing bottom
+as a dictionary argument to it and checking if an exception occurrs. If it did, the constraint is
+probably unsatisfied, otherwise we get a <code>Dict</code> of it.</p>
+<p>But making <code>optionalDict</code> accept <code>c =&gt; Dict c</code> as an argument would make api awful - every caller of
+function that uses <code>optionalDict</code> would need to pass <code>Dict</code> as an argument to it. Luckily we can
+avoid this by using <code>QuantifiedConstraints</code> - constraint solving for them works the same way and
+known dictionary would be used when possibility.</p>
+<p>To illustrate this, in the following code</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">test </span><span style="color:#ff7733;">::</span><span style="color:#bfbab0;"> ((</span><span style="color:#8ec87c;">Ord Int </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Eq Int</span><span style="color:#bfbab0;">) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">r) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#bfbab0;">r
+test f </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> f
+</span></code></pre>
+<p>ghc would ignore <code>Ord Int</code> and pass <code>\_ -&gt; $fEqInt</code> to <code>f</code></p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">test1 </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Ord Int </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Eq Int
+</span><span style="color:#bfbab0;">test1 </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> _ </span><span style="color:#f29668;">-&gt; $</span><span style="color:#bfbab0;">fEqInt
+
+</span><span style="color:#ffb454;">test </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall r. ((</span><span style="color:#8ec87c;">Ord Int </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Eq Int</span><span style="color:#bfbab0;">) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">r) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#bfbab0;">r
+test </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> (@ r) (f </span><span style="color:#f29668;">::</span><span style="color:#bfbab0;"> (</span><span style="color:#f29718;">Ord Int </span><span style="color:#f29668;">=&gt; </span><span style="color:#f29718;">Eq Int</span><span style="color:#bfbab0;">) </span><span style="color:#f29668;">=&gt;</span><span style="color:#bfbab0;"> r) </span><span style="color:#f29668;">-&gt;</span><span style="color:#bfbab0;"> f test1
+</span></code></pre><h1 id="hs-boot-trick">.hs-boot trick<a class="zola-anchor" href="#hs-boot-trick" aria-label="Anchor link for: hs-boot-trick">§</a>
+</h1>
+<p>Now we understand what the constraint of <code>optionalDict</code> should be - something of form <code>a =&gt; b</code> so
+that it is always satisfied. An obvious choice would be <code>c =&gt; c</code>, but unluckily such constraint
+loops the typechecker, so instead we would use <code>Hold c =&gt; c</code>, with <code>Hold</code> defined as</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#5c6773;">-- for some reason syntax highlighting in zola breaks if I omit those `where`s
+</span><span style="color:#ff7733;">class </span><span style="color:#bfbab0;">c =&gt; </span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+instance </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+</span></code></pre>
+<p>When there is a dictionary for <code>c</code> in scope, such constraint would be solved with <code>\_ -&gt; cDict</code>,
+otherwise with <code>$p1Hold</code>, a selector that extracts first superclass from <code>Hold</code>.</p>
+<p>But trying to add this constraint to <code>optionalDict</code> we would immediately hit a problem: ghc fairly
+considers such constraint trivial. This means that if we would try to use this constraint inside of
+<code>optionalDict</code>, ghc would just rignore passed constraint and use <code>$p1Hold</code> instead, exactly like it
+ignored useless givens in the previous section.</p>
+<p>For example, if we would write something like this</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">useHold </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c . (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+useHold </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> sub @(</span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c) @c
+
+</span><span style="color:#ffb454;">sub </span><span style="color:#ff7733;">::</span><span style="color:#bfbab0;"> (a </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">b) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">a </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">b
+sub </span><span style="color:#f29718;">Dict </span><span style="color:#f29668;">= </span><span style="color:#f29718;">Dict
+</span></code></pre>
+<p>generated core for <code>useHold</code> would be</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">useHold </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall (c :: </span><span style="color:#8ec87c;">Constraint</span><span style="color:#bfbab0;">). (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+useHold </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> (@ c) _ (d </span><span style="color:#f29668;">:: </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c)) </span><span style="color:#f29668;">-&gt; </span><span style="color:#ff7733;">case</span><span style="color:#bfbab0;"> c </span><span style="color:#ff7733;">of </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> i </span><span style="color:#f29668;">-&gt; </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> (i </span><span style="color:#f29668;">`cast` &lt;</span><span style="color:#f29718;">Co</span><span style="color:#f29668;">:</span><span style="color:#f29718;">2</span><span style="color:#f29668;">&gt;</span><span style="color:#bfbab0;">)
+</span></code></pre>
+<p>But we don't want this to happen - we are going to distinguish defined instance from undefined by
+looking at the passed <code>Hold c =&gt; c</code> constraint. Currently, we always work with <code>$p1Hold</code> which gives
+us no information at all.</p>
+<p>To prevent ghc from dropping this constraint we need to make it non-trivial, but at the same time we
+need it to be trivial at the call side so it would be always solved. So we should make ghc forget that
+<code>c</code> is the supreclass of <code>Hold c</code> when defining <code>optionalDict</code>, but at call side it should know that again.</p>
+<p>We cannot control exporting of superclasses, but there is another possibility: instead of making ghc
+forget about <code>Hold</code>s superclass we can make ghc not-yet-know about it by putting forward declaration
+of <code>Hold</code> into <code>.hs-boot</code> file and giving it no superclass.</p>
+<p>Module defining <code>optionalDict</code> would <code>{-# SOURCE #-}</code>-import <code>Hold</code> so it would be an abstract class,
+whereas at useside <code>Hold</code> would be imported normally and <code>Hold c =&gt; c</code> would be trivial again.</p>
+<p>So we would have something like this</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#5c6773;">-- Data/Constraint/Optional/Hold.hs-boot
+
+</span><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Hold</span><span style="color:#bfbab0;"> (c :: </span><span style="color:#8ec87c;">Constraint</span><span style="color:#bfbab0;">) </span><span style="color:#ff7733;">where
+
+</span><span style="color:#5c6773;">-- Data/Constraint/Optional/Impl.hs
+
+</span><span style="color:#ff7733;">import</span><span style="color:#bfbab0;"> {-# SOURCE #-} Data.Constraint.Optional.Hold
+
+</span><span style="color:#ffb454;">useHold </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c . (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+useHold </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> sub @(</span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c) @c
+
+</span><span style="color:#ffb454;">sub </span><span style="color:#ff7733;">::</span><span style="color:#bfbab0;"> (a </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">b) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">a </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">b
+sub </span><span style="color:#f29718;">Dict </span><span style="color:#f29668;">= </span><span style="color:#f29718;">Dict
+
+</span><span style="color:#5c6773;">-- Data/Constraint/Optional/Hold.hs
+
+</span><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">Data.Constraint.Optional.Impl
+
+</span><span style="color:#ff7733;">class </span><span style="color:#bfbab0;">c =&gt; </span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+instance </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+</span></code></pre>
+<p>Now <code>useHold</code> is what we wanted it to be:</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">useHold </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall (c :: </span><span style="color:#8ec87c;">Constraint</span><span style="color:#bfbab0;">). (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+useHold </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> (@ c) (d </span><span style="color:#f29668;">:: </span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">=&gt;</span><span style="color:#bfbab0;"> c) </span><span style="color:#f29668;">-&gt;</span><span style="color:#bfbab0;"> sub d
+</span></code></pre><h1 id="manipulating-dictionaries">Manipulating dictionaries<a class="zola-anchor" href="#manipulating-dictionaries" aria-label="Anchor link for: manipulating-dictionaries">§</a>
+</h1>
+<p>Now we should just check if passed constraint actually uses <code>Hold c</code> argument by passing <code>undefined</code>
+dictionary to it and check if exception occures. If it doesn't, we would get <code>Dict c</code> and return it,
+otherwise the constraint doesn't seem to be satisfied, so we simply return <code>Nothing</code>.</p>
+<p>Everything we need is an <code>undefined</code> dictionary and a function to force the dictionary stored inside
+of <code>Dict</code>.</p>
+<p>Speaking core we want something like this</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">errorDict </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+errorDict </span><span style="color:#f29668;">= </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> undefined
+
+</span><span style="color:#ffb454;">forceDict </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">-&gt; </span><span style="color:#f29668;">()
+</span><span style="color:#bfbab0;">forceDict </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> (@ c) (d </span><span style="color:#f29668;">:: </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> c) </span><span style="color:#f29668;">-&gt; </span><span style="color:#ff7733;">case</span><span style="color:#bfbab0;"> d </span><span style="color:#ff7733;">of </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">-&gt;</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">`seq` </span><span style="color:#f29718;">()
+</span></code></pre>
+<p>Though in haskell we cannot manipulate the constraint directly, those functions can be defined
+easily using some <code>unsafeCoerce</code>s</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">newtype </span><span style="color:#f29718;">Gift</span><span style="color:#bfbab0;"> c a </span><span style="color:#f29668;">= </span><span style="color:#f29718;">Gift</span><span style="color:#bfbab0;"> { unGift </span><span style="color:#f29668;">::</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">=&gt;</span><span style="color:#bfbab0;"> a }
+
+</span><span style="color:#ff7733;">data </span><span style="color:#f29718;">NoInstanceError </span><span style="color:#f29668;">= </span><span style="color:#f29718;">NoInstanceError
+  </span><span style="color:#ff7733;">deriving</span><span style="color:#bfbab0;"> stock </span><span style="color:#f29718;">Show
+  </span><span style="color:#ff7733;">deriving</span><span style="color:#bfbab0;"> anyclass </span><span style="color:#f29718;">Exception
+
+</span><span style="color:#ffb454;">errorDict </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+errorDict </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> unsafeCoerce (</span><span style="color:#f29718;">Gift Dict </span><span style="color:#f29668;">:: </span><span style="color:#f29718;">Gift</span><span style="color:#bfbab0;"> c (</span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> c)) (throw </span><span style="color:#f29718;">NoInstanceError</span><span style="color:#bfbab0;">)
+
+</span><span style="color:#ffb454;">forceDict </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c . </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">-&gt; </span><span style="color:#f29668;">()
+</span><span style="color:#bfbab0;">forceDict </span><span style="color:#f29718;">Dict </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> unGift @c </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> unsafeCoerce (</span><span style="color:#f29668;">`seq` </span><span style="color:#f29718;">()</span><span style="color:#bfbab0;">)
+</span></code></pre>
+<blockquote>
+<p><strong>NOTE</strong>: Some explanations of this trick can be found e.g.
+<a href="https://www.schoolofhaskell.com/user/thoughtpolice/using-reflection">here</a> or
+<a href="https://stackoverflow.com/questions/17793466/black-magic-in-haskell-reflection">here</a>.</p>
+</blockquote>
+<p>This gives exactly the core we wanted</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">ex </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">SomeException
+</span><span style="color:#bfbab0;">ex </span><span style="color:#f29668;">= $</span><span style="color:#bfbab0;">fExceptionNoInstanceError_</span><span style="color:#f29668;">$</span><span style="color:#bfbab0;">ctoException </span><span style="color:#f29718;">NoInstanceError
+
+</span><span style="color:#ffb454;">errorDict2 </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Any
+</span><span style="color:#bfbab0;">errorDict2 </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> raise# ex
+
+</span><span style="color:#ffb454;">errorDict1 </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall (c :: </span><span style="color:#8ec87c;">Constraint</span><span style="color:#bfbab0;">). </span><span style="color:#8ec87c;">Dict Any
+</span><span style="color:#bfbab0;">errorDict1 </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> (@ c) </span><span style="color:#f29668;">-&gt; </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> errorDict2
+
+</span><span style="color:#ffb454;">errorDict </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall (c :: </span><span style="color:#8ec87c;">Constraint</span><span style="color:#bfbab0;">). </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+errorDict </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> errorDict1 </span><span style="color:#f29668;">`cast` &lt;</span><span style="color:#f29718;">Co</span><span style="color:#f29668;">:</span><span style="color:#f29718;">24</span><span style="color:#f29668;">&gt;
+
+</span><span style="color:#ffb454;">forceDict </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall (c :: </span><span style="color:#8ec87c;">Constraint</span><span style="color:#bfbab0;">). </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">-&gt; </span><span style="color:#f29668;">()
+</span><span style="color:#bfbab0;">forceDict
+  </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> (@ c) (d </span><span style="color:#f29668;">:: </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> c) </span><span style="color:#f29668;">-&gt;
+      </span><span style="color:#ff7733;">case</span><span style="color:#bfbab0;"> d </span><span style="color:#ff7733;">of</span><span style="color:#bfbab0;"> { </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">-&gt;
+      </span><span style="color:#ff7733;">case</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">`cast` &lt;</span><span style="color:#f29718;">Co</span><span style="color:#f29668;">:</span><span style="color:#f29718;">15</span><span style="color:#f29668;">&gt; </span><span style="color:#ff7733;">of</span><span style="color:#bfbab0;"> { __DEFAULT </span><span style="color:#f29668;">-&gt; </span><span style="color:#f29718;">()</span><span style="color:#bfbab0;"> }
+      }
+
+</span></code></pre>
+<blockquote>
+<p><strong>NOTE</strong> If you would look closely at <code>forceDict</code> you would probably immediately see an issue with
+it: if <code>c</code> is represented with newtype, e.g. is a single method class, <code>forceDict</code> would force
+that method instead of the dictionary. It would be very bad if method is bottom or expensive to
+compute. I don't see any way to fix it so I would just hope that this case is corner enough to
+ignore.</p>
+</blockquote>
+<h1 id="actually-implementing-optionaldict">Actually implementing optionalDict<a class="zola-anchor" href="#actually-implementing-optionaldict" aria-label="Anchor link for: actually-implementing-optionaldict">§</a>
+</h1>
+<p>With everything defined above we can easily define our <code>optionalDict</code></p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">optionalDict </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c . (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Maybe</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c)
+optionalDict </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> unsafeDupablePerformIO </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> catch
+  </span><span style="color:#ff7733;">do</span><span style="color:#bfbab0;"> evaluate (forceDict c) </span><span style="color:#f29668;">$&gt; </span><span style="color:#f29718;">Just</span><span style="color:#bfbab0;"> c
+  </span><span style="color:#ff7733;">do </span><span style="color:#f29668;">\</span><span style="color:#f29718;">NoInstanceError </span><span style="color:#f29668;">-&gt;</span><span style="color:#bfbab0;"> pure </span><span style="color:#f29718;">Nothing
+  </span><span style="color:#ff7733;">where
+    </span><span style="color:#ffb454;">c </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+    c </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> sub @(</span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c) @c errorDict
+</span><span style="color:#5c6773;">-- I&#39;m actually not sure if NOINLINE is really needed, but there is &#39;errorDict&#39; inside
+-- so I want to be sure that ghc wouldn&#39;t pass that dictionary somewhere else.
+</span><span style="color:#bfbab0;">{-# </span><span style="color:#ff7733;">NOINLINE</span><span style="color:#bfbab0;"> optionalDict #-}
+</span></code></pre>
+<p>And some helpers for it</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">isSatisfied </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c . (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Bool
+</span><span style="color:#bfbab0;">isSatisfied </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> isJust </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> optionalDict @c
+
+</span><span style="color:#ffb454;">maybeC </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c r . (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">r </span><span style="color:#ff7733;">-&gt;</span><span style="color:#bfbab0;"> (c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">r) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#bfbab0;">r
+maybeC d a </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> maybe d (</span><span style="color:#f29668;">\</span><span style="color:#f29718;">Dict </span><span style="color:#f29668;">-&gt;</span><span style="color:#bfbab0;"> a) </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> optionalDict @c
+
+</span><span style="color:#ffb454;">tryC </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c r . (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt;</span><span style="color:#bfbab0;"> (c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">r) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">Maybe </span><span style="color:#bfbab0;">r
+tryC a </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> optionalDict @c </span><span style="color:#f29668;">&lt;</span><span style="color:#bfbab0;">&amp;</span><span style="color:#f29668;">&gt; \</span><span style="color:#f29718;">Dict </span><span style="color:#f29668;">-&gt;</span><span style="color:#bfbab0;"> a
+</span></code></pre>
+<p>And indeed they would work</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">Data.Constraint.Maybe
+
+</span><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Foo </span><span style="color:#ff7733;">where
+instance </span><span style="color:#8ec87c;">Foo </span><span style="color:#ff7733;">where
+
+class </span><span style="color:#8ec87c;">Bar </span><span style="color:#ff7733;">where
+
+</span><span style="color:#ffb454;">main </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">IO </span><span style="color:#f29668;">()
+</span><span style="color:#bfbab0;">main </span><span style="color:#f29668;">= </span><span style="color:#ff7733;">do
+</span><span style="color:#bfbab0;">  print </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> isSatisfied @</span><span style="color:#f29718;">Foo
+</span><span style="color:#bfbab0;">  print </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> isSatisfied @</span><span style="color:#f29718;">Bar
+
+</span><span style="color:#bfbab0;">  print </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> tryC @(</span><span style="color:#f29718;">Show Bool</span><span style="color:#bfbab0;">) </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> show </span><span style="color:#f29718;">True
+</span><span style="color:#bfbab0;">  print </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> tryC @(</span><span style="color:#f29718;">Show</span><span style="color:#bfbab0;"> (</span><span style="color:#f29718;">Int </span><span style="color:#f29668;">-&gt; </span><span style="color:#f29718;">Int</span><span style="color:#bfbab0;">)) </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> show </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> id @</span><span style="color:#f29718;">Int
+</span></code></pre>
+<p>outputs</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#f29718;">True
+False
+Just </span><span style="color:#54e7cb;">&quot;True&quot;
+</span><span style="color:#f29718;">Nothing
+</span></code></pre>
+<p>However there is a serious problem with this approach: since <code>Hold</code> is non-<code>{-# SOURCE #-}</code> imported,
+<code>Hold c =&gt; c</code> constraint is trivial and solving as soon as possible. That means that we cannot define a
+new function using <code>optionalDict</code> - its constraint would be immediately solved as trivial as we saw
+before.</p>
+<p>For example, we cannot move helpers to the <code>Main</code> module or define function <code>tryShow</code> to abstract
+pattern in the code above - such functions would never get an optional instance.</p>
+<h1 id="delaying-solving-of-hold-c-c-constraint">Delaying solving of <code>Hold c =&gt; c</code> constraint<a class="zola-anchor" href="#delaying-solving-of-hold-c-c-constraint" aria-label="Anchor link for: delaying-solving-of-hold-c-c-constraint">§</a>
+</h1>
+<p>If we stop for a minute now and think about possible semantic of optional constraints, we would see
+two different possibilities here:</p>
+<ul>
+<li>
+<p>Optional constraints may be solved only when constraint is fully instantiated with concrete types,
+like <code>Typeable</code>, so we can accurate judge about its satisfibility. But that means that <code>c</code> no
+longer implies <code>Optionally c</code>, which is kind of strange.</p>
+</li>
+<li>
+<p>Optional constraints may be solved immediately if not written explicitly in type signatures,
+marking constraint as unsatisfied if it is in current form.</p>
+</li>
+</ul>
+<p>I would probably prefer the former, because eager solving of optional constraints &quot;breaks&quot; type
+inference: if we would write <code>foo = bar</code>, <code>foo</code> may behave differently than <code>bar</code> which I really
+want to avoid. So we would delay solving of <code>Hold c =&gt; c</code> constraints as long as possible, until <code>c</code>
+is fully instantiated.</p>
+<p>First, let me define a synonym for it</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">class</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c =&gt; c) =&gt; </span><span style="color:#8ec87c;">Optionally </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+instance</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Optionally </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+</span></code></pre>
+<p>Now we just need a way to prevent <code>Optionally</code> synonym from simplifying to <code>Hold c =&gt; c</code> as long as
+possible. Sounds familiar to you? That's exactly what <a href="https://blog.csongor.co.uk/opaque-constraint-synonyms/">opaque constraint
+synonyms</a> trick does!</p>
+<p>The trick is to introduce an overlapping instance for <code>Optionally</code></p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Dummy </span><span style="color:#ff7733;">where
+instance </span><span style="color:#bfbab0;">{-# </span><span style="color:#ff7733;">OVERLAPPING</span><span style="color:#bfbab0;"> #-} (</span><span style="color:#8ec87c;">Hold Dummy </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dummy</span><span style="color:#bfbab0;">) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Optionally Dummy </span><span style="color:#ff7733;">where
+</span></code></pre>
+<blockquote>
+<p><strong>NOTE</strong> If you prefer the second semantic out of two mentioned above just replace all occurences of
+<code>OVERLAPPING</code> with <code>INCOHERENT</code></p>
+</blockquote>
+<p>Now ghc cannot simplify <code>Optionally c</code> to <code>Hold c =&gt; c</code>, because until <code>c</code> is instantiated, ghc does not know
+which instance should it choose, even though they are completely equivalent.</p>
+<p>But in our case it is not enough: this instance prevents only <code>Optionally c</code> from being solved.
+Something like <code>Optionally (Show a)</code> would be expanded as <code>Show a</code> does not overlap with <code>Dummy</code>.</p>
+<p>Instead we need something like this</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">data</span><span style="color:#bfbab0;"> family </span><span style="color:#f29718;">Any </span><span style="color:#f29668;">::</span><span style="color:#bfbab0;"> k
+
+</span><span style="color:#ff7733;">instance </span><span style="color:#bfbab0;">{-# </span><span style="color:#ff7733;">OVERLAPPING</span><span style="color:#bfbab0;"> #-} (</span><span style="color:#8ec87c;">Hold</span><span style="color:#bfbab0;"> (f (g </span><span style="color:#8ec87c;">Any</span><span style="color:#bfbab0;">)) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">f (g </span><span style="color:#8ec87c;">Any</span><span style="color:#bfbab0;">)) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Optionally</span><span style="color:#bfbab0;"> (f (g </span><span style="color:#8ec87c;">Any</span><span style="color:#bfbab0;">)) </span><span style="color:#ff7733;">where
+instance </span><span style="color:#bfbab0;">{-# </span><span style="color:#ff7733;">OVERLAPPING</span><span style="color:#bfbab0;"> #-} (</span><span style="color:#8ec87c;">Hold</span><span style="color:#bfbab0;"> (f (g </span><span style="color:#8ec87c;">Any </span><span style="color:#bfbab0;">a)) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">f (g </span><span style="color:#8ec87c;">Any</span><span style="color:#bfbab0;">)) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Optionally</span><span style="color:#bfbab0;"> (f (g </span><span style="color:#8ec87c;">Any </span><span style="color:#bfbab0;">a)) </span><span style="color:#ff7733;">where
+</span><span style="color:#f29668;">...
+
+</span><span style="color:#ff7733;">instance </span><span style="color:#bfbab0;">{-# </span><span style="color:#ff7733;">OVERLAPPING</span><span style="color:#bfbab0;"> #-} (</span><span style="color:#8ec87c;">Hold</span><span style="color:#bfbab0;"> (f (g </span><span style="color:#8ec87c;">Any</span><span style="color:#bfbab0;">) z) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">f (g </span><span style="color:#8ec87c;">Any</span><span style="color:#bfbab0;">) z) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Optionally</span><span style="color:#bfbab0;"> (f (g </span><span style="color:#8ec87c;">Any</span><span style="color:#bfbab0;">) z) </span><span style="color:#ff7733;">where
+instance </span><span style="color:#bfbab0;">{-# </span><span style="color:#ff7733;">OVERLAPPING</span><span style="color:#bfbab0;"> #-} (</span><span style="color:#8ec87c;">Hold</span><span style="color:#bfbab0;"> (f (g </span><span style="color:#8ec87c;">Any </span><span style="color:#bfbab0;">a) z) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">f (g </span><span style="color:#8ec87c;">Any </span><span style="color:#bfbab0;">a) z) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Optionally</span><span style="color:#bfbab0;"> (f (g </span><span style="color:#8ec87c;">Any </span><span style="color:#bfbab0;">a) z) </span><span style="color:#ff7733;">where
+</span><span style="color:#f29668;">...
+</span></code></pre>
+<p>Now those instances make constraints like <code>Optionaly (Show a)</code>, <code>Optionally (Show [a])</code>,
+<code>Optionally (MonadReader r m)</code> ambiguous.</p>
+<p>I hope nobody uses classes or types with more than 10 type parameters, so I've just generated 100
+such instances with <code>CPP</code></p>
+<p>After we update <code>optionalDict</code> and helpers to use <code>Optionally</code>, we can easily write functions like</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">tryShow </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall a . </span><span style="color:#8ec87c;">Optionally</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Show </span><span style="color:#bfbab0;">a) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">a </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">Maybe String
+</span><span style="color:#bfbab0;">tryShow a </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> tryC @(</span><span style="color:#f29718;">Show</span><span style="color:#bfbab0;"> a) </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> show a
+</span></code></pre>
+<p>in <code>Main</code> and the resolution of <code>Optionally (Show a)</code> would be delayed until <code>a</code> would be instantiated with
+some concrete type, so <code>tryShow</code> can be used like this</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">main </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">IO </span><span style="color:#f29668;">()
+</span><span style="color:#bfbab0;">main </span><span style="color:#f29668;">= </span><span style="color:#ff7733;">do
+</span><span style="color:#bfbab0;">  print </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> tryShow </span><span style="color:#f29718;">True
+</span><span style="color:#bfbab0;">  print </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> tryShow </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> id @</span><span style="color:#f29718;">Int
+</span></code></pre>
+<p>to get</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#f29718;">Just </span><span style="color:#54e7cb;">&quot;True&quot;
+</span><span style="color:#f29718;">Nothing
+</span></code></pre>
+<p>Now <code>Optionally</code> constraints aren't solved until fully instantiated, which is in my opinion good
+default, but solving them eagerly can be useful too, so let's just provide functions to give or
+discard <code>Optionally</code> constraint manually</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">newtype </span><span style="color:#f29718;">GiftQ</span><span style="color:#bfbab0;"> c d a </span><span style="color:#f29668;">= </span><span style="color:#f29718;">GiftQ</span><span style="color:#bfbab0;"> { unGiftQ </span><span style="color:#f29668;">::</span><span style="color:#bfbab0;"> (c </span><span style="color:#f29668;">=&gt;</span><span style="color:#bfbab0;"> d) </span><span style="color:#f29668;">=&gt;</span><span style="color:#bfbab0;"> a }
+
+</span><span style="color:#ffb454;">give </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c r . c </span><span style="color:#ff7733;">=&gt;</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Optionally </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">r) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#bfbab0;">r
+give f </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> unGiftQ @(</span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c) @c </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> unsafeCoerce (</span><span style="color:#f29718;">Gift</span><span style="color:#bfbab0;"> @(</span><span style="color:#f29718;">Optionally</span><span style="color:#bfbab0;"> c) f)
+
+</span><span style="color:#ffb454;">discard </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall c r . (</span><span style="color:#8ec87c;">Optionally </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">r) </span><span style="color:#ff7733;">-&gt; </span><span style="color:#bfbab0;">r
+discard f </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> unGiftQ @(</span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c) @c </span><span style="color:#f29668;">$</span><span style="color:#bfbab0;"> unsafeCoerce (</span><span style="color:#f29718;">Gift</span><span style="color:#bfbab0;"> @(</span><span style="color:#f29718;">Optionally</span><span style="color:#bfbab0;"> c) f)
+</span></code></pre>
+<blockquote>
+<p><strong>NOTE</strong> This way we could also define <code>resolve</code> to turn <code>Hold c =&gt; c</code> into <code>Optionally c</code>, but
+<code>resolve</code> would have an unpredictible semantic, e.g. <code>Show a</code> wouldn't imply <code>Optionally (Show [a])</code>,
+so I omit it here.</p>
+</blockquote>
+<h1 id="dangers-of-hold-c-c">Dangers of <code>Hold c =&gt; c</code><a class="zola-anchor" href="#dangers-of-hold-c-c" aria-label="Anchor link for: dangers-of-hold-c-c">§</a>
+</h1>
+<p>Playing with this I found some interesting thing: how do you think, what would ghc say if we would
+write incorrect version of <code>tryShow</code> like that</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ffb454;">tryShow </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall a . </span><span style="color:#8ec87c;">Optionally</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Show </span><span style="color:#bfbab0;">a) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">a </span><span style="color:#ff7733;">-&gt; </span><span style="color:#8ec87c;">String
+</span><span style="color:#bfbab0;">tryShow </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> show
+</span></code></pre>
+<p>You would probably expect this function to give <code>Could not deduce (Show a) ...</code> error, but this code
+actually typechecks and with <code>main</code> above prints</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#54e7cb;">&quot;True&quot;
+</span><span style="color:#bfbab0;">optionally</span><span style="color:#f29668;">-</span><span style="color:#bfbab0;">example</span><span style="color:#f29668;">: &lt;&lt;</span><span style="color:#bfbab0;">loop</span><span style="color:#f29668;">&gt;&gt;
+</span></code></pre>
+<p>I was pretty confused by this but after some struggling I found that given constraint <code>Hold c =&gt; c</code>
+ghc can easily derive <code>c</code>! Using that trick we can &quot;prove&quot; absolutely anything with code like</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">class </span><span style="color:#bfbab0;">c =&gt; </span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+instance </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+
+data </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">=&gt; </span><span style="color:#f29718;">Dict
+
+</span><span style="color:#ffb454;">anythingDict </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+anythingDict </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> go
+  </span><span style="color:#ff7733;">where
+    </span><span style="color:#ffb454;">go </span><span style="color:#ff7733;">::</span><span style="color:#bfbab0;"> (</span><span style="color:#8ec87c;">Hold </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">=&gt; </span><span style="color:#bfbab0;">c) </span><span style="color:#ff7733;">=&gt; </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+    go </span><span style="color:#f29668;">= </span><span style="color:#f29718;">Dict
+</span></code></pre>
+<p>Of course, it is impossible to get a dictionary for any class out of nothing so generated core simply
+loops</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#f29718;">Rec</span><span style="color:#bfbab0;"> {
+</span><span style="color:#f29668;">$</span><span style="color:#bfbab0;">dHold_rxi </span><span style="color:#f29668;">::</span><span style="color:#bfbab0;"> forall {c </span><span style="color:#f29668;">:: </span><span style="color:#f29718;">Constraint</span><span style="color:#bfbab0;">}</span><span style="color:#f29668;">. </span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c
+</span><span style="color:#f29668;">$</span><span style="color:#bfbab0;">dHold_rxi </span><span style="color:#f29668;">= $</span><span style="color:#bfbab0;">dHold_rxi
+end </span><span style="color:#f29718;">Rec</span><span style="color:#bfbab0;"> }
+
+</span><span style="color:#ffb454;">anythingDict </span><span style="color:#ff7733;">:: </span><span style="color:#bfbab0;">forall (c :: </span><span style="color:#8ec87c;">Constraint</span><span style="color:#bfbab0;">). </span><span style="color:#8ec87c;">Dict </span><span style="color:#bfbab0;">c
+anythingDict </span><span style="color:#f29668;">= \</span><span style="color:#bfbab0;"> (@c) </span><span style="color:#f29668;">-&gt; </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> (</span><span style="color:#f29668;">$</span><span style="color:#bfbab0;">dHold_rxi </span><span style="color:#f29668;">`cast` &lt;</span><span style="color:#f29718;">Co</span><span style="color:#f29668;">:</span><span style="color:#f29718;">2</span><span style="color:#f29668;">&gt;</span><span style="color:#bfbab0;">)
+</span></code></pre>
+<p>That is in fact <a href="https://gitlab.haskell.org/ghc/ghc/-/issues/19690">a bug</a>: ghc isn't supposed to
+generate bottom dictionaries but with <code>UndecidableSuperClasses</code> and <code>QuantifiedConstraints</code> it's
+possible to get one.</p>
+<p>Luckily in our case we can easily workaround this. The constraint <code>Hold c =&gt; c</code> is available in
+<code>tryShow</code> as superclass of <code>Optionally c</code>, but we don't really need it to be one. Instead we can
+make <code>Optionally</code> hold <code>Dict</code> of that superclass.</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">data </span><span style="color:#f29718;">HoldDict</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> (</span><span style="color:#f29718;">Hold</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">=&gt;</span><span style="color:#bfbab0;"> c) </span><span style="color:#f29668;">=&gt; </span><span style="color:#f29718;">HoldDict
+
+</span><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Optionally </span><span style="color:#bfbab0;">c </span><span style="color:#ff7733;">where
+  </span><span style="color:#ffb454;">optionallyHoldDict </span><span style="color:#ff7733;">:: </span><span style="color:#8ec87c;">HoldDict </span><span style="color:#bfbab0;">c
+</span></code></pre>
+<p>With instances of <code>Optionally</code>, <code>optionalDict</code> and other functions changed to match these changes,
+incorrect version of <code>tryShow</code> would be rejected with <code>Could not deduce (Show a)</code> but written
+correct, everything would work as it used to.</p>
+<h1 id="limitations">Limitations<a class="zola-anchor" href="#limitations" aria-label="Anchor link for: limitations">§</a>
+</h1>
+<p>I don't think this trick should be ever used in practice because it has a lot of problems:</p>
+<ul>
+<li>
+<p>It relies heavily on ghc's unspecified behaviour, and while representation of instances as
+dictionaries is in my opinion reliable enough, the fact that ghc prefers global dictionaries to
+local one isn't.</p>
+</li>
+<li>
+<p>Without optimisations ghc wouldn't solve constraints that way so the whole trick works only with
+<code>-O</code>. It wouldn't work in ghci without <code>-fobject-code</code> enabled for example.</p>
+</li>
+<li>
+<p>It can break on newtype represented classes if bottom is stored as a method, as it was said in the
+&quot;manipulating constraint&quot; section. In that example, <code>existsC @Foo</code> would result in exception
+thrown.</p>
+<pre style="background-color:#1c1b29;">
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Foo </span><span style="color:#ff7733;">where</span><span style="color:#bfbab0;"> foo </span><span style="color:#f29668;">:: </span><span style="color:#f29718;">()
+</span><span style="color:#ff7733;">instance </span><span style="color:#8ec87c;">Foo </span><span style="color:#ff7733;">where</span><span style="color:#bfbab0;"> foo </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;"> undefined
+</span></code></pre></li>
+<li>
+<p>It doesn't work with magic classes like <code>Typeable</code>, <code>KnownSymbol</code> or <code>~</code>.</p>
+</li>
+<li>
+<p>It gives some performance overhead: even if we would inline <code>optionalDict</code> (which I'm not sure is
+safe), it uses <code>unsafePerformIO</code> and <code>unsafeCoerce</code> that would prevent another optimisations.</p>
+</li>
+<li>
+<p>It breaks the open world assumption: if there exists an unimported orphan instance for <code>c</code>, it would
+not be detected by <code>optionalDict</code>. This seems to be a general problem of optional constraints
+rather than this concrete approach through.</p>
+</li>
+<li>
+<p>And probably some another problems I'm not aware of yet.</p>
+</li>
+</ul>
+<h1 id="conclusion">Conclusion<a class="zola-anchor" href="#conclusion" aria-label="Anchor link for: conclusion">§</a>
+</h1>
+<blockquote>
+<p>I think this all is as awful as fun. Awfun.</p>
+<p>effectfully, <a href="https://github.com/effectfully-ou/sketches/tree/master/poly-type-of-saga/part1-try-unify">automatically detecting and instantiating
+polymorphism</a></p>
+</blockquote>
+<p>This quote perfectly describes how do I feel about this trick. It is elegant and beautiful
+in some way, but at the same time it's terrible.</p>
+<p>Still taking this as a challenge I really enjoyed making it work, and hope you enjoyed reading
+about it, despite my writing being a mess.</p>
+<p>Final code as well as some usage examples can be found at <a href="https://github.com/aadaa-fgtaa/optionally">github</a>.</p>
+
+        </div>
+        
+    
+</div></div>
+            
+    <div class="pagination">
+        <div class="pagination__buttons">
+            </div>
+    </div>
+<footer class="footer">
+                    <div class="footer__inner"><div class="copyright copyright--user">© 2021 aadaa_fgtaa</div>
+    <script type="text/javascript" src="https:&#x2F;&#x2F;www.aadaa-fgtaa.github.io&#x2F;blog&#x2F;assets&#x2F;js&#x2F;main.js"></script>
+</div>
+                    
+
+                </footer></div>
+    </body>
+</html>
+
+
+<!-- Math rendering -->
+<script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML' async></script>
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>

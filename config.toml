@@ -1,0 +1,37 @@
+base_url = "https://www.aadaa-fgtaa.github.io/blog"
+title = "aadaa_fgtaa"
+# description = "placeholder description text for your blog!"
+default_language = "en"
+generate_feed = true
+feed_filename = "rss.xml"
+compile_sass = true
+build_search_index = false
+taxonomies = [
+  {name = "tags"},
+  {name = "categories"},
+]
+
+[markdown]
+highlight_code = true
+highlight_theme = "aayu-dark"
+
+[extra]
+author = "aadaa_fgtaa"
+show_author = false
+show_categories = false
+show_tags = true
+theme_color = "orange"
+show_menu_items = 4
+full_width = false
+center = true
+favicon = "favicon.png"
+og_preview_img = "favicon.png"
+copyright = "© 2021 aadaa_fgtaa"
+logo_text = "aadaa_fgtaa :: Blog"
+logo_home_link = "/"
+main_menu = [
+  {url="/", name="articles"},
+  {url="/tags/", name="articles by tags"},
+  {url="/about/", name="about"},
+]
+menu_more = "more…"

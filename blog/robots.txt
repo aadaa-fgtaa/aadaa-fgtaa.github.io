@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://www.aadaa-fgtaa.github.io/blog/sitemap.xml
