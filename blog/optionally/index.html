@@ -275,7 +275,6 @@ errorDict </span><span style="color:#f29668;">=</span><span style="color:#bfbab0
       </span><span style="color:#ff7733;">case</span><span style="color:#bfbab0;"> d </span><span style="color:#ff7733;">of</span><span style="color:#bfbab0;"> { </span><span style="color:#f29718;">Dict</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">-&gt;
       </span><span style="color:#ff7733;">case</span><span style="color:#bfbab0;"> c </span><span style="color:#f29668;">`cast` &lt;</span><span style="color:#f29718;">Co</span><span style="color:#f29668;">:</span><span style="color:#f29718;">15</span><span style="color:#f29668;">&gt; </span><span style="color:#ff7733;">of</span><span style="color:#bfbab0;"> { __DEFAULT </span><span style="color:#f29668;">-&gt; </span><span style="color:#f29718;">()</span><span style="color:#bfbab0;"> }
       }
-
 </span></code></pre>
 <blockquote>
 <p><strong>NOTE</strong> If you would look closely at <code>forceDict</code> you would probably immediately see an issue with
@@ -312,9 +311,7 @@ tryC a </span><span style="color:#f29668;">=</span><span style="color:#bfbab0;">
 </span></code></pre>
 <p>And indeed they would work</p>
 <pre style="background-color:#1c1b29;">
-<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">import </span><span style="color:#bfbab0;">Data.Constraint.Maybe
-
-</span><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Foo </span><span style="color:#ff7733;">where
+<code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Foo </span><span style="color:#ff7733;">where
 instance </span><span style="color:#8ec87c;">Foo </span><span style="color:#ff7733;">where
 
 class </span><span style="color:#8ec87c;">Bar </span><span style="color:#ff7733;">where
@@ -500,7 +497,7 @@ local one isn't.</p>
 </li>
 <li>
 <p>It can break on newtype represented classes if bottom is stored as a method, as it was said in the
-&quot;manipulating constraint&quot; section. In that example, <code>existsC @Foo</code> would result in exception
+&quot;manipulating constraint&quot; section. In that example, <code>isSatisfied @Foo</code> would result in exception
 thrown.</p>
 <pre style="background-color:#1c1b29;">
 <code class="language-haskell" data-lang="haskell"><span style="color:#ff7733;">class </span><span style="color:#8ec87c;">Foo </span><span style="color:#ff7733;">where</span><span style="color:#bfbab0;"> foo </span><span style="color:#f29668;">:: </span><span style="color:#f29718;">()

@@ -199,7 +199,6 @@ errorDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#
       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;case&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; d &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;of&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; { &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;
       &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;case&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;`cast` &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Co&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;15&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;of&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; { __DEFAULT &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;()&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; }
       }
-
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;blockquote&gt;
 &lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; If you would look closely at &lt;code&gt;forceDict&lt;&#x2F;code&gt; you would probably immediately see an issue with
@@ -236,9 +235,7 @@ tryC a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;p&gt;And indeed they would work&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
-&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;import &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;Data.Constraint.Maybe
-
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
 instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
 
 class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Bar &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
@@ -424,7 +421,7 @@ local one isn&#x27;t.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
 &lt;li&gt;
 &lt;p&gt;It can break on newtype represented classes if bottom is stored as a method, as it was said in the
-&amp;quot;manipulating constraint&amp;quot; section. In that example, &lt;code&gt;existsC @Foo&lt;&#x2F;code&gt; would result in exception
+&amp;quot;manipulating constraint&amp;quot; section. In that example, &lt;code&gt;isSatisfied @Foo&lt;&#x2F;code&gt; would result in exception
 thrown.&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;()

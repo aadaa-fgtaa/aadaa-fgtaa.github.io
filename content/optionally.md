@@ -231,7 +231,6 @@ forceDict
       case d of { Dict c ->
       case c `cast` <Co:15> of { __DEFAULT -> () }
       }
-
 ```
 
 > __NOTE__ If you would look closely at `forceDict` you would probably immediately see an issue with
@@ -273,8 +272,6 @@ tryC a = optionalDict @c <&> \Dict -> a
 And indeed they would work
 
 ```haskell
-import Data.Constraint.Maybe
-
 class Foo where
 instance Foo where
 
@@ -490,7 +487,7 @@ I don't think this trick should be ever used in practice because it has a lot of
   `-O`. It wouldn't work in ghci without `-fobject-code` enabled for example.
 
 - It can break on newtype represented classes if bottom is stored as a method, as it was said in the
-  "manipulating constraint" section. In that example, `existsC @Foo` would result in exception
+  "manipulating constraint" section. In that example, `isSatisfied @Foo` would result in exception
   thrown.
 
   ```haskell
@@ -499,7 +496,6 @@ I don't think this trick should be ever used in practice because it has a lot of
   ```
 
 - It doesn't work with magic classes like `Typeable`, `KnownSymbol` or `~`.
-
 
 
 - It gives some performance overhead: even if we would inline `optionalDict` (which I'm not sure is
