@@ -495,8 +495,7 @@ I don't think this trick should be ever used in practice because it has a lot of
   instance Foo where foo = undefined
   ```
 
-- It doesn't work with magic classes like `Typeable`, `KnownSymbol` or `~`.
-
+- It doesn't work with `~`.
 
 - It gives some performance overhead: even if we would inline `optionalDict` (which I'm not sure is
   safe), it uses `unsafePerformIO` and `unsafeCoerce` that would prevent another optimisations.

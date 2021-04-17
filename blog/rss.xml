@@ -428,7 +428,7 @@ thrown.&lt;&#x2F;p&gt;
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; undefined
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;&#x2F;li&gt;
 &lt;li&gt;
-&lt;p&gt;It doesn&#x27;t work with magic classes like &lt;code&gt;Typeable&lt;&#x2F;code&gt;, &lt;code&gt;KnownSymbol&lt;&#x2F;code&gt; or &lt;code&gt;~&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;It doesn&#x27;t work with &lt;code&gt;~&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
 &lt;li&gt;
 &lt;p&gt;It gives some performance overhead: even if we would inline &lt;code&gt;optionalDict&lt;&#x2F;code&gt; (which I&#x27;m not sure is
