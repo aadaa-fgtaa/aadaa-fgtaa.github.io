@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-        <loc>https://www.aadaa-fgtaa.github.io/blog/</loc>
+        <loc>https://aadaa-fgtaa.github.io/blog/</loc>
     </url>
     <url>
-        <loc>https://www.aadaa-fgtaa.github.io/blog/about/</loc>
+        <loc>https://aadaa-fgtaa.github.io/blog/about/</loc>
     </url>
     <url>
-        <loc>https://www.aadaa-fgtaa.github.io/blog/optionally/</loc>
+        <loc>https://aadaa-fgtaa.github.io/blog/optionally/</loc>
         <lastmod>2021-04-17</lastmod>
     </url>
     <url>
-        <loc>https://www.aadaa-fgtaa.github.io/blog/page/1/</loc>
+        <loc>https://aadaa-fgtaa.github.io/blog/page/1/</loc>
     </url>
     <url>
-        <loc>https://www.aadaa-fgtaa.github.io/blog/tags/</loc>
+        <loc>https://aadaa-fgtaa.github.io/blog/tags/</loc>
     </url>
     <url>
-        <loc>https://www.aadaa-fgtaa.github.io/blog/tags/haskell/</loc>
+        <loc>https://aadaa-fgtaa.github.io/blog/tags/haskell/</loc>
     </url>
 </urlset>

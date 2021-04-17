@@ -2,17 +2,17 @@
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
     <channel>
       <title>aadaa_fgtaa</title>
-        <link>https://www.aadaa-fgtaa.github.io/blog</link>
+        <link>https://aadaa-fgtaa.github.io/blog</link>
         <description></description>
         <generator>Zola</generator>
         <language>en</language>
-        <atom:link href="https://www.aadaa-fgtaa.github.io/blog/rss.xml" rel="self" type="application/rss+xml"/>
+        <atom:link href="https://aadaa-fgtaa.github.io/blog/rss.xml" rel="self" type="application/rss+xml"/>
         <lastBuildDate>Sat, 17 Apr 2021 00:00:00 +0000</lastBuildDate>
         <item>
             <title>Checking for uncheckable: optional constraints</title>
             <pubDate>Sat, 17 Apr 2021 00:00:00 +0000</pubDate>
-            <link>https://www.aadaa-fgtaa.github.io/blog/optionally/</link>
-            <guid>https://www.aadaa-fgtaa.github.io/blog/optionally/</guid>
+            <link>https://aadaa-fgtaa.github.io/blog/optionally/</link>
+            <guid>https://aadaa-fgtaa.github.io/blog/optionally/</guid>
             <description>&lt;h1 id=&quot;the-challenge&quot;&gt;The challenge&lt;a class=&quot;zola-anchor&quot; href=&quot;#the-challenge&quot; aria-label=&quot;Anchor link for: the-challenge&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
 &lt;p&gt;Can we check if instance exists and acquire its dictionary without defining boilerplate instances by
