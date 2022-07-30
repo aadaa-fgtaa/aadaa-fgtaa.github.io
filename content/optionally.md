@@ -36,7 +36,8 @@ I found a solution that I think is interesting and in some sense beautiful (and 
 
 As you probably know, ghc is usually very "stubborn" about constraints: once a constraint is introduced as wanted, ghc
 would either solve it or emit compilation error if it cannot be solved. This is for good, indeed: the behavior ensures
-that instances defined in other modules would never change current module's behavior.
+that instances defined in other modules would never change current module's behavior (except for overlapping instances,
+of course).
 
 This makes checking for instance's existence very difficult. One possible solution is to use `OVERLAPPING/INCOHERENT`
 pragmas and define one instance of `Optionally` for each satisfied `c`
@@ -62,8 +63,8 @@ optional constraints, like [ifctx](https://github.com/mikeizbicki/ifcxt) does, b
 
 Despite ghc's "stubbornness", there are still some cases when ghc behaves differently depending on wanted constraint
 being satisfied, so that these both cases don't cause compilation error. One of such cases is the constraint
-dictionaries optimizations enabled by `-fsolve-constant-dicts` (or simply `-O`): when it is enabled, ghc prefers to solve
-a constraint with a top-level dictionary rather than local one passed to a function.
+dictionaries optimizations, enabled by `-fsolve-constant-dicts` (or simply `-O`): when it is enabled, ghc prefers to
+solve a constraint with a top-level dictionary rather than local one passed to a function.
 
 For example in
 
@@ -83,7 +84,7 @@ test :: Eq Integer => Dict (Eq Integer)
 test = \ _ -> test1
 ```
 
-In case of unsatisfied constraint, like `Eq (Integer -> Integer)`, there is no top-level dictionary available, so ghc is
+In case of unsatisfied constraint, like `Eq (Integer -> Integer)` there is no top-level dictionary available, so ghc is
 forced to use given dictionary, thus
 
 ```haskell
@@ -140,7 +141,7 @@ test = \ (@ c) (@ r) ($dEq :: Eq c) (f :: (Eq c => Eq c) => r) -> f (\ _ -> $dEq
 # Hiding the truth with .hs-boot files
 
 Now we roughly understand that the definition of `Optionally c` should be something of form `g => c` where `c` can be
-always solved using `g`. An obvious choice would be `c => c` but such constraint loops the typechecker leading to `too
+always solved using `g`. An obvious choice would be `c => c`, but such constraint loops the typechecker, leading to `too
 many iterations` errors. The solution is to wrap given constraint into constraint-level newtype, `Hold`:
 
 ```haskell
@@ -148,7 +149,7 @@ class c => Hold c
 instance c => Hold c
 ```
 
-Now `Optionally` would now just a synonym for `Hold c => c`. When `-fsolve-constant-dicts` is active and there is a
+Now `Optionally` would be just a synonym for `Hold c => c`. When `-fsolve-constant-dicts` is active and there is a
 dictionary for `c` in scope such constraint would be solved with `\_ -> cDict`, and `$p1Hold`, a selector that extracts
 the first superclass of `Hold`, otherwise.
 
@@ -196,8 +197,11 @@ The whole thing looks something like that
 ```haskell
 -- Data/Constraint/Optional/Hold.hs-boot
 
-class Hold (c :: Constraint) where
+class Hold (c :: Constraint)
 
+```
+
+```haskell
 -- Data/Constraint/Optional/Impl.hs
 
 import {-# SOURCE #-} Data.Constraint.Optional.Hold
@@ -208,6 +212,9 @@ useHold = sub @(Hold c) @c
 sub :: (a => b) => Dict a -> Dict b
 sub Dict = Dict
 
+```
+
+```haskell
 -- Data/Constraint/Optional/Hold.hs
 
 import Data.Constraint.Optional.Impl
@@ -260,7 +267,7 @@ forceDict Dict = unGift @c $ unsafeCoerce (`seq` ())
 > [here](https://www.schoolofhaskell.com/user/thoughtpolice/using-reflection) or
 > [here](https://stackoverflow.com/questions/17793466/black-magic-in-haskell-reflection).
 
-This gives exactly the core we wanted
+This gives exactly the core we wanted:
 
 ```haskell
 ex :: SomeException
@@ -305,8 +312,7 @@ optionalDict = unsafeDupablePerformIO $ catch
 {-# NOINLINE optionalDict #-}
 ```
 
-But instead of working with `optionalDict` directly it is often simpler to use some combinators defined in terms of it,
-e.g.
+Instead of working with `optionalDict` directly it is often simpler to use some combinators defined in terms of it, e.g.
 
 ```haskell
 isSatisfied :: forall c . Optionally c => Bool
@@ -327,6 +333,9 @@ instance Foo
 
 class Bar
 
+```
+
+```haskell
 main :: IO ()
 main = do
   print $ isSatisfied @Foo
@@ -354,10 +363,7 @@ c => c` constraint is trivial and is solved as soon as possible, meaning there i
 For example, we cannot move combinators defined above to the `Main` module. Likewise, there is no way to define `tryShow`
 to abstract pattern in the code above - such functions would always return `Nothing`.
 
-If we stop for a minute now and think about possible semantic of optional constraints, we would see two different
-possibilities here:
-
-In fact, there is two possible behaviors of optional constraints:
+In fact, there is two possible behaviors of optional constraints we can implement here:
 
 - Optional constraints may be solved only when constraint is fully instantiated with concrete types, like `Typeable`, so
   is is possible to judge accurately about its satisfiability. Sadly, that means that `c` no longer implies `Optionally
@@ -466,8 +472,8 @@ discard f = unGiftQ @(Hold c) @c $ unsafeCoerce (Gift @(Optionally c) f)
 
 # Dangers of Hold c => c
 
-Playing with the implementation, I found some interesting case: what do you think would ghc say if we would write
-incorrect version of `tryShow` like this
+Playing with the implementation, I found an interesting case: what do you think would ghc say if we would write
+incorrect version of `tryShow` like this:
 
 ```haskell
 tryShow :: forall a . Optionally (Show a) => a -> String
@@ -511,12 +517,12 @@ anythingDict = \ (@c) -> Dict ($dHold_rxi `cast` <Co:2>)
 ```
 
 That is in fact [a bug](https://gitlab.haskell.org/ghc/ghc/-/issues/19690) in ghc: it isn't supposed to produce a
-bottom-valued dictionaries, yet with `UndecidableSuperClasses` and `QuantifiedConstraints` it's possible to trick ghc
-into getting one.
+bottom-valued dictionaries, yet with `UndecidableSuperClasses` and `QuantifiedConstraints` it's possible to force ghc to
+construct one.
 
-Luckily in our case there exists a simple workaround: the problematic constraint `Hold c => c` is available in `tryShow`
-as superclass of `Optionally c`, but it doesn't really have to be one. Instead, we would store that constraint wrapped
-in `Dict` as a method of `Optionally`:
+Luckily in our case there it a simple workaround: the problematic constraint `Hold c => c` is available in `tryShow` as
+the superclass of `Optionally c`, but it doesn't really have to be one. Instead, we can store that constraint wrapped in
+`Dict` as a method of `Optionally`:
 
 ```haskell
 data HoldDict c = (Hold c => c) => HoldDict
@@ -525,7 +531,7 @@ class Optionally c where
   optionallyHoldDict :: HoldDict c
 ```
 
-Now to access `Hold c => c` constraint one should explicitly match on `optionallyHoldDict`s result, which is impossible
+Now to access `Hold c => c` constraint one should explicitly match on `optionallyHoldDict`'s result, which is impossible
 for user to do as it isn't exported. With everything updated to match these changes, incorrect version of `tryShow`
 above would be rejected with `Could not deduce (Show a)` as expected, whereas the correct version would work as it
 used to.
