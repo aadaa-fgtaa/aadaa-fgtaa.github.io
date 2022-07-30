@@ -13,8 +13,8 @@ html {
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Fira Code', Menlo, DejaVu Sans Mono, Monaco, Consolas, Ubuntu Mono, monospace;
-  font-size: 1rem;
+  font-family: Inter, Seoge UI, Helvetica, Arial, Menlo, DejaVu Sans Mono, Monaco, Consolas, Ubuntu Mono, monospace;
+  font-size: 1.15rem;
   line-height: 1.54;
   background-color: var(--background);
   color: var(--color);
@@ -57,44 +57,29 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-// Actually keeping Pawroman's stylings here for font-size over h1-h6.
-// I prefer differentiated header height.
-
-// OLD
-// ---------------------
-// h1, h2, h3 {
-//   font-size: 1.4rem;
-// }
-
-// h4, h5, h6 {
-//   font-size: 1.2rem;
-// }
-
-// Pawroman's
-// ---------------------
 h1 {
-  font-size: 1.5rem;
+  font-size: 2rem;
   &:before {
     content: "# "
   }
 }
 
 h2 {
-  font-size: 1.3rem;
+  font-size: 1.5rem;
   &:before {
     content: "## "
   }
 }
 
 h3 {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   &:before {
     content: "### "
   }
 }
 
 h4, h5, h6 {
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   &:before {
     content: "#### "
   }
@@ -124,6 +109,7 @@ img {
 
 p {
   margin-bottom: 20px;
+  text-align: justify;
 }
 
 figure {
@@ -172,12 +158,9 @@ figure {
 }
 
 code {
-  font-family: 'Fira Code', Menlo, DejaVu Sans Mono, Monaco, Consolas, Ubuntu Mono, monospace;
+  font-family: JetbrainsMono, 'Fira Code', Menlo, DejaVu Sans Mono, Monaco, Consolas, Ubuntu Mono, monospace;
   font-feature-settings: normal;
-  // background: var(--accent-alpha-20);
-  // color: var(--accent);
   color: var(--code);
-  // padding: 1px 6px;
   margin: 0 2px;
   font-size: .95rem;
 }
@@ -196,17 +179,12 @@ pre {
     margin-top: -40px;
   }
 
-  // @media (max-width: $phone-max-width) {
-    // white-space: pre-wrap;
-    // word-wrap: break-word;
-  // }
-
-    code {
-      background: none !important;
-      margin: 0;
-      padding: 0;
-      font-size: inherit;
-      border: none;
+  code {
+    background: none !important;
+    margin: 0;
+    padding: 0;
+    font-size: inherit;
+    border: none;
   }
 }
 
