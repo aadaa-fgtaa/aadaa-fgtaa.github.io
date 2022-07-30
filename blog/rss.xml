@@ -7,50 +7,68 @@
         <generator>Zola</generator>
         <language>en</language>
         <atom:link href="https://aadaa-fgtaa.github.io/blog/rss.xml" rel="self" type="application/rss+xml"/>
-        <lastBuildDate>Sat, 17 Apr 2021 00:00:00 +0000</lastBuildDate>
+        <lastBuildDate>Sat, 30 Jul 2022 00:00:00 +0000</lastBuildDate>
         <item>
-            <title>Checking for uncheckable: optional constraints</title>
+            <title>Checking For Uncheckable: Optional Constraints</title>
             <pubDate>Sat, 17 Apr 2021 00:00:00 +0000</pubDate>
             <link>https://aadaa-fgtaa.github.io/blog/optionally/</link>
             <guid>https://aadaa-fgtaa.github.io/blog/optionally/</guid>
             <description>&lt;h1 id=&quot;the-challenge&quot;&gt;The challenge&lt;a class=&quot;zola-anchor&quot; href=&quot;#the-challenge&quot; aria-label=&quot;Anchor link for: the-challenge&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
-&lt;p&gt;Can we check if an instance exists and acquire its dictionary without defining boilerplate instances
-by hand, like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rampion&#x2F;constraint-unions&quot;&gt;constraint-unions&lt;&#x2F;a&gt; suggests, or using
-template haskell to generate them, like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;mikeizbicki&#x2F;ifcxt&quot;&gt;ifctx&lt;&#x2F;a&gt; does?&lt;&#x2F;p&gt;
-&lt;p&gt;In other words, can we define&lt;&#x2F;p&gt;
+&lt;p&gt;Is there a way to check if a constraint is satisfied and acquire its dictionary if it is without forcing the user to
+define boilerplate instances by hand, like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;rampion&#x2F;constraint-unions&quot;&gt;constraint-unions&lt;&#x2F;a&gt;, or use
+template haskell to generate them, like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;mikeizbicki&#x2F;ifcxt&quot;&gt;ifctx&lt;&#x2F;a&gt;?&lt;&#x2F;p&gt;
+&lt;p&gt;In other words, is there a way to define&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;optionalDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Maybe&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c)
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;that is always satisfied for concrete &lt;code&gt;c&lt;&#x2F;code&gt;, like e.g. &lt;code&gt;Typeable&lt;&#x2F;code&gt; does, such that &lt;code&gt;optionalDict&lt;&#x2F;code&gt; would
-return &lt;code&gt;Just Dict&lt;&#x2F;code&gt; if constraint &lt;code&gt;c&lt;&#x2F;code&gt; is satisfied at call side?&lt;&#x2F;p&gt;
-&lt;p&gt;I found a solution that I think is interesting and in some sense beautiful (and at the same time an
-ugly hack), so I decided to write about it.&lt;&#x2F;p&gt;
+&lt;p&gt;such that &lt;code&gt;Optionally c&lt;&#x2F;code&gt; would always be satisfied for any concrete &lt;code&gt;c&lt;&#x2F;code&gt;, like &lt;code&gt;Typeable&lt;&#x2F;code&gt;, and &lt;code&gt;optionalDict&lt;&#x2F;code&gt; would be
+&lt;code&gt;Just Dict&lt;&#x2F;code&gt; if constraint &lt;code&gt;c&lt;&#x2F;code&gt; is satisfied at call side, and &lt;code&gt;Nothing&lt;&#x2F;code&gt; otherwise?&lt;&#x2F;p&gt;
+&lt;p&gt;I found a solution that I think is interesting and in some sense beautiful (and at the same time an ugly hack).&lt;&#x2F;p&gt;
 &lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;DISCLAIMER&lt;&#x2F;strong&gt; This trick definitely shouldn&#x27;t be used for anything serious, it&#x27;s just an abuse of
-ghc unspecified behaviour. Don&#x27;t repeat this at home!&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;DISCLAIMER&lt;&#x2F;strong&gt; This trick definitely shouldn&#x27;t be used for anything serious, it&#x27;s just an abuse of ghc unspecified
+behaviour. Don&#x27;t repeat this at home!&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
 &lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; I assume that you are familiar with ghc core, especially with the representation of type
-classes and instances. If you are not, &lt;a href=&quot;https:&#x2F;&#x2F;www.youtube.com&#x2F;watch?v=fty9QL4aSRc&quot;&gt;this talk&lt;&#x2F;a&gt; by
-Vladislav Zavialov may be a good introduction.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; To understand this post you would probably need some familiarity with ghc core, especially with the
+representation of type classes and instances. &lt;a href=&quot;https:&#x2F;&#x2F;www.youtube.com&#x2F;watch?v=fty9QL4aSRc&quot;&gt;This talk&lt;&#x2F;a&gt; by Vladislav
+Zavialov may be a good introduction.&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
-&lt;h1 id=&quot;constraint-solver-and-known-dictionaries&quot;&gt;Constraint solver and known dictionaries&lt;a class=&quot;zola-anchor&quot; href=&quot;#constraint-solver-and-known-dictionaries&quot; aria-label=&quot;Anchor link for: constraint-solver-and-known-dictionaries&quot;&gt;§&lt;&#x2F;a&gt;
+&lt;h1 id=&quot;constant-dictionaries-optimization&quot;&gt;Constant dictionaries optimization&lt;a class=&quot;zola-anchor&quot; href=&quot;#constant-dictionaries-optimization&quot; aria-label=&quot;Anchor link for: constant-dictionaries-optimization&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
-&lt;p&gt;As you probably know, ghc is usually very stubborn about constraints: once constraint is introduced
-as wanted, ghc would solve it or throw compilation error if failed. This makes checking for
-instance&#x27;s existence difficult.&lt;&#x2F;p&gt;
-&lt;p&gt;Still there are some cases when ghc behaves differently depending on instance being defined, so
-these both cases don&#x27;t cause compilation error. One of the cases is that ghc prefers to solve a
-constraint with a top-level dictionary rather than local one passed to a function, as long as
-optimisations are enabled.&lt;&#x2F;p&gt;
-&lt;p&gt;For example, in the following code&lt;&#x2F;p&gt;
+&lt;p&gt;As you probably know, ghc is usually very &amp;quot;stubborn&amp;quot; about constraints: once a constraint is introduced as wanted, ghc
+would either solve it or emit compilation error if it cannot be solved. This is for good, indeed: the behavior ensures
+that instances defined in other modules would never change current module&#x27;s behavior.&lt;&#x2F;p&gt;
+&lt;p&gt;This makes checking for instance&#x27;s existence very difficult. One possible solution is to use &lt;code&gt;OVERLAPPING&#x2F;INCOHERENT&lt;&#x2F;code&gt;
+pragmas and define one instance of &lt;code&gt;Optionally&lt;&#x2F;code&gt; for each satisfied &lt;code&gt;c&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;{-# &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;OVERLAPPING&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; #-} &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;  optionalDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Nothing
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;{-# &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;OVERLAPS&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; #-} &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Show Int&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;  optionalDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Just Dict
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;{-# &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;OVERLAPS&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; #-} &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Show Bool&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;  optionalDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Just Dict
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;...
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;That way we never introduce &lt;code&gt;c&lt;&#x2F;code&gt; as wanted constraint, but rather just pattern-match on it to determine if we have a
+dictionary for it. However, this forces us to define an instance of &lt;code&gt;Optionally&lt;&#x2F;code&gt; for each fully instantiated &lt;code&gt;c&lt;&#x2F;code&gt;, which
+is very boilerplatish. One option is to use template haskell to generate such instances in each module where we use
+optional constraints, like &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;mikeizbicki&#x2F;ifcxt&quot;&gt;ifctx&lt;&#x2F;a&gt; does, but I wanted more user-friendly solution.&lt;&#x2F;p&gt;
+&lt;p&gt;Despite ghc&#x27;s &amp;quot;stubbornness&amp;quot;, there are still some cases when ghc behaves differently depending on wanted constraint
+being satisfied, so that these both cases don&#x27;t cause compilation error. One of such cases is the constraint
+dictionaries optimizations enabled by &lt;code&gt;-fsolve-constant-dicts&lt;&#x2F;code&gt; (or simply &lt;code&gt;-O&lt;&#x2F;code&gt;): when it is enabled, ghc prefers to solve
+a constraint with a top-level dictionary rather than local one passed to a function.&lt;&#x2F;p&gt;
+&lt;p&gt;For example in&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;)
 test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;ghc with &lt;code&gt;-O&lt;&#x2F;code&gt; would just ignore passed constraint and use top-level &lt;code&gt;$fEqInteger&lt;&#x2F;code&gt; instead&lt;&#x2F;p&gt;
+&lt;p&gt;ghc with &lt;code&gt;-fsolve-constant-dicts&lt;&#x2F;code&gt; would just ignore passed constraint and use top-level &lt;code&gt;$fEqInteger&lt;&#x2F;code&gt; instead, producing
+the following core&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;)
 test1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;fEqInteger
@@ -58,42 +76,61 @@ test1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;)
 test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; _ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; test1
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Using this fact we can check if an instance exists by defining such &lt;code&gt;test&lt;&#x2F;code&gt; function, passing bottom
-as a dictionary argument to it and checking if an exception occurrs. If it did, the constraint is
-probably unsatisfied, otherwise we get a &lt;code&gt;Dict&lt;&#x2F;code&gt; of it.&lt;&#x2F;p&gt;
-&lt;p&gt;But making &lt;code&gt;optionalDict&lt;&#x2F;code&gt; accept &lt;code&gt;c =&amp;gt; Dict c&lt;&#x2F;code&gt; as an argument would make api awful - every caller of
-function that uses &lt;code&gt;optionalDict&lt;&#x2F;code&gt; would need to pass &lt;code&gt;Dict&lt;&#x2F;code&gt; as an argument to it. Luckily we can
-avoid this by using &lt;code&gt;QuantifiedConstraints&lt;&#x2F;code&gt; - constraint solving for them works the same way and
-known dictionary would be used when possibility.&lt;&#x2F;p&gt;
-&lt;p&gt;To illustrate this, in the following code&lt;&#x2F;p&gt;
+&lt;p&gt;In case of unsatisfied constraint, like &lt;code&gt;Eq (Integer -&amp;gt; Integer)&lt;&#x2F;code&gt;, there is no top-level dictionary available, so ghc is
+forced to use given dictionary, thus&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
-&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; ((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Ord Int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Int&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;))
+test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;would result in&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;))
+test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;(Ab)using this fact we can check if a constraint is satisfied by defining such &lt;code&gt;test&lt;&#x2F;code&gt; function, passing a bottom-valued
+dictionary to it and checking if an exception occurs. If it did, the constraint is probably unsatisfied, otherwise we
+will get a &lt;code&gt;Dict&lt;&#x2F;code&gt; of it.&lt;&#x2F;p&gt;
+&lt;p&gt;Of course, making &lt;code&gt;optionalDict&lt;&#x2F;code&gt; accept &lt;code&gt;c =&amp;gt; Dict c&lt;&#x2F;code&gt; explicitly would make api awful - every caller of function that
+uses an optional constraint would need to pass &lt;code&gt;Dict&lt;&#x2F;code&gt; as an argument to it. Luckily, we can make this argument implicit
+with help of &lt;code&gt;QuantifiedConstraints&lt;&#x2F;code&gt; - constraint solving for them would apply the same optimization if possible, for
+example in&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; ((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
 test f &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; f
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;ghc would ignore &lt;code&gt;Ord Int&lt;&#x2F;code&gt; and pass &lt;code&gt;\_ -&amp;gt; $fEqInt&lt;&#x2F;code&gt; to &lt;code&gt;f&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;ghc would again ignore &lt;code&gt;Eq Integer&lt;&#x2F;code&gt; and pass &lt;code&gt;\_ -&amp;gt; $fEqInteger&lt;&#x2F;code&gt; to &lt;code&gt;f&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
-&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Ord Int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Int
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;test1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; _ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; $&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;fEqInt
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;test1 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; _ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; $&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;fEqInteger
 
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall r. ((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Ord Int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Int&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
-test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (@ r) (f &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Ord Int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Eq Int&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; f test1
-&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h1 id=&quot;hs-boot-trick&quot;&gt;.hs-boot trick&lt;a class=&quot;zola-anchor&quot; href=&quot;#hs-boot-trick&quot; aria-label=&quot;Anchor link for: hs-boot-trick&quot;&gt;§&lt;&#x2F;a&gt;
-&lt;&#x2F;h1&gt;
-&lt;p&gt;Now we understand what the constraint of &lt;code&gt;optionalDict&lt;&#x2F;code&gt; should be - something of form &lt;code&gt;a =&amp;gt; b&lt;&#x2F;code&gt; so
-that it is always satisfied. An obvious choice would be &lt;code&gt;c =&amp;gt; c&lt;&#x2F;code&gt;, but unluckily such constraint
-loops the typechecker, so instead we would use &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt;, with &lt;code&gt;Hold&lt;&#x2F;code&gt; defined as&lt;&#x2F;p&gt;
-&lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
-&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#5c6773;&quot;&gt;-- for some reason syntax highlighting in zola breaks if I omit those `where`s
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
-instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall r . ((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
+test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (@ r) (f &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Eq Integer &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Eq Integer&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; f test1
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;When there is a dictionary for &lt;code&gt;c&lt;&#x2F;code&gt; in scope, such constraint would be solved with &lt;code&gt;\_ -&amp;gt; cDict&lt;&#x2F;code&gt;,
-otherwise with &lt;code&gt;$p1Hold&lt;&#x2F;code&gt;, a selector that extracts first superclass from &lt;code&gt;Hold&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
-&lt;p&gt;But trying to add this constraint to &lt;code&gt;optionalDict&lt;&#x2F;code&gt; we would immediately hit a problem: ghc fairly
-considers such constraint trivial. This means that if we would try to use this constraint inside of
-&lt;code&gt;optionalDict&lt;&#x2F;code&gt;, ghc would just rignore passed constraint and use &lt;code&gt;$p1Hold&lt;&#x2F;code&gt; instead, exactly like it
-ignored useless givens in the previous section.&lt;&#x2F;p&gt;
-&lt;p&gt;For example, if we would write something like this&lt;&#x2F;p&gt;
+&lt;p&gt;Also note that despite its name &lt;code&gt;-fsolve-constant-dicts&lt;&#x2F;code&gt; isn&#x27;t limited to using constant, i.e. top-level, dictionaries.
+It would also use less-deeply bound dictionaries instead of more deep ones, for example in&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; ((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
+test f &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; f
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;&lt;code&gt;Eq c&lt;&#x2F;code&gt; passed to &lt;code&gt;test&lt;&#x2F;code&gt; would be used to solve &lt;code&gt;Eq c =&amp;gt; Eq c&lt;&#x2F;code&gt; required for &lt;code&gt;f&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c r . &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; ((&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Eq &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
+test &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (@ c) (@ r) (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;dEq &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Eq&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) (f &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Eq&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Eq&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; f (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;\&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; _ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; $&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;dEq)
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h1 id=&quot;hiding-the-truth-with-hs-boot-files&quot;&gt;Hiding the truth with .hs-boot files&lt;a class=&quot;zola-anchor&quot; href=&quot;#hiding-the-truth-with-hs-boot-files&quot; aria-label=&quot;Anchor link for: hiding-the-truth-with-hs-boot-files&quot;&gt;§&lt;&#x2F;a&gt;
+&lt;&#x2F;h1&gt;
+&lt;p&gt;Now we roughly understand that the definition of &lt;code&gt;Optionally c&lt;&#x2F;code&gt; should be something of form &lt;code&gt;g =&amp;gt; c&lt;&#x2F;code&gt; where &lt;code&gt;c&lt;&#x2F;code&gt; can be
+always solved using &lt;code&gt;g&lt;&#x2F;code&gt;. An obvious choice would be &lt;code&gt;c =&amp;gt; c&lt;&#x2F;code&gt; but such constraint loops the typechecker leading to &lt;code&gt;too many iterations&lt;&#x2F;code&gt; errors. The solution is to wrap given constraint into constraint-level newtype, &lt;code&gt;Hold&lt;&#x2F;code&gt;:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
+instance c =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Now &lt;code&gt;Optionally&lt;&#x2F;code&gt; would now just a synonym for &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt;. When &lt;code&gt;-fsolve-constant-dicts&lt;&#x2F;code&gt; is active and there is a
+dictionary for &lt;code&gt;c&lt;&#x2F;code&gt; in scope such constraint would be solved with &lt;code&gt;\_ -&amp;gt; cDict&lt;&#x2F;code&gt;, and &lt;code&gt;$p1Hold&lt;&#x2F;code&gt;, a selector that extracts
+the first superclass of &lt;code&gt;Hold&lt;&#x2F;code&gt;, otherwise.&lt;&#x2F;p&gt;
+&lt;p&gt;But adding such constraint to &lt;code&gt;optionalDict&lt;&#x2F;code&gt; would immediately reveal a simple problem: the constraint &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; is
+in fact redundant, thus &lt;code&gt;ghc&lt;&#x2F;code&gt; would never use dictionary that is passed to &lt;code&gt;optionalDict&lt;&#x2F;code&gt;. Instead it would use
+top-level &lt;code&gt;$p1Hold&lt;&#x2F;code&gt; to solve all such constraint, completely ignoring that passed dictionary.&lt;&#x2F;p&gt;
+&lt;p&gt;To illustrate, for&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;useHold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c . (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
 useHold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; sub @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Hold&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) @c
@@ -101,23 +138,26 @@ useHold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;sub &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;b) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;b
 sub &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;generated core for &lt;code&gt;useHold&lt;&#x2F;code&gt; would be&lt;&#x2F;p&gt;
+&lt;p&gt;generated core would be&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;useHold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall (c :: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Constraint&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;). (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
 useHold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (@ c) _ (d &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Hold&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c)) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;case&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;of &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; i &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (i &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;`cast` &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Co&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;)
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;But we don&#x27;t want this to happen - we are going to distinguish defined instance from undefined by
-looking at the passed &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; constraint. Currently, we always work with &lt;code&gt;$p1Hold&lt;&#x2F;code&gt; which gives
-us no information at all.&lt;&#x2F;p&gt;
-&lt;p&gt;To prevent ghc from dropping this constraint we need to make it non-trivial, but at the same time we
-need it to be trivial at the call side so it would be always solved. So we should make ghc forget that
-&lt;code&gt;c&lt;&#x2F;code&gt; is the supreclass of &lt;code&gt;Hold c&lt;&#x2F;code&gt; when defining &lt;code&gt;optionalDict&lt;&#x2F;code&gt;, but at call side it should know that again.&lt;&#x2F;p&gt;
-&lt;p&gt;We cannot control exporting of superclasses, but there is another possibility: instead of making ghc
-forget about &lt;code&gt;Hold&lt;&#x2F;code&gt;s superclass we can make ghc not-yet-know about it by putting forward declaration
-of &lt;code&gt;Hold&lt;&#x2F;code&gt; into &lt;code&gt;.hs-boot&lt;&#x2F;code&gt; file and giving it no superclass.&lt;&#x2F;p&gt;
-&lt;p&gt;Module defining &lt;code&gt;optionalDict&lt;&#x2F;code&gt; would &lt;code&gt;{-# SOURCE #-}&lt;&#x2F;code&gt;-import &lt;code&gt;Hold&lt;&#x2F;code&gt; so it would be an abstract class,
-whereas at useside &lt;code&gt;Hold&lt;&#x2F;code&gt; would be imported normally and &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; would be trivial again.&lt;&#x2F;p&gt;
-&lt;p&gt;So we would have something like this&lt;&#x2F;p&gt;
+&lt;p&gt;Notice how the dictionary for &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; in &lt;code&gt;useHold&lt;&#x2F;code&gt;&#x27;s definition is simply ignored. We really don&#x27;t want this to
+happen - after all, the whole idea is to distinguish satisfied constraints from unsatisfied ones by looking at the
+passed dictionary for &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt;. At the moment we are always dealing with &lt;code&gt;$p1Hold&lt;&#x2F;code&gt;, which gives us no information
+at all.&lt;&#x2F;p&gt;
+&lt;p&gt;To prevent ghc from dropping the constraint we need to hide the fact that &lt;code&gt;c&lt;&#x2F;code&gt; is the superclass of &lt;code&gt;Hold c&lt;&#x2F;code&gt;, so that ghc
+wouldn&#x27;t be able to solve &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; with &lt;code&gt;$p1Hold&lt;&#x2F;code&gt; at the definition of &lt;code&gt;Optionally&lt;&#x2F;code&gt;. However it should be available
+at the call side as we need &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; would always be satisfied there. Thus, the goal is to make ghc forget that &lt;code&gt;c&lt;&#x2F;code&gt;
+is the supreclass of &lt;code&gt;Hold c&lt;&#x2F;code&gt; when defining &lt;code&gt;Optionally&lt;&#x2F;code&gt;, but leave that information available at call side.&lt;&#x2F;p&gt;
+&lt;p&gt;I don&#x27;t know any way to control exporting of superclasses (and doubt that one could exist), but there is another
+&lt;del&gt;terrible hack&lt;&#x2F;del&gt; option: instead of making ghc forget about &lt;code&gt;Hold&lt;&#x2F;code&gt;&#x27;s superclass we would make ghc not-yet-know about it
+by putting forward declaration of &lt;code&gt;Hold&lt;&#x2F;code&gt; without its superclass into &lt;code&gt;.hs-boot&lt;&#x2F;code&gt; file.&lt;&#x2F;p&gt;
+&lt;p&gt;The module defining &lt;code&gt;Optionally&lt;&#x2F;code&gt; would &lt;code&gt;{-# SOURCE #-}&lt;&#x2F;code&gt;-import &lt;code&gt;Hold&lt;&#x2F;code&gt; so that it would be an abstract class without any
+information about superclasses available, whereas at the use side &lt;code&gt;Hold&lt;&#x2F;code&gt; would be imported normally and &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt;
+would be trivial.&lt;&#x2F;p&gt;
+&lt;p&gt;The whole thing looks something like that&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#5c6773;&quot;&gt;-- Data&#x2F;Constraint&#x2F;Optional&#x2F;Hold.hs-boot
 
@@ -137,30 +177,28 @@ sub &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict &lt;&#x2
 
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;import &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;Data.Constraint.Optional.Impl
 
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
-instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
+instance c =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Now &lt;code&gt;useHold&lt;&#x2F;code&gt; is what we wanted it to be:&lt;&#x2F;p&gt;
+&lt;p&gt;Now &lt;code&gt;useHold&lt;&#x2F;code&gt; uses &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; constraint as expected:&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
-&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;useHold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall (c :: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Constraint&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;). (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;useHold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall (c :: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Constraint&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) . (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
 useHold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (@ c) (d &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Hold&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; sub d
-&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h1 id=&quot;manipulating-dictionaries&quot;&gt;Manipulating dictionaries&lt;a class=&quot;zola-anchor&quot; href=&quot;#manipulating-dictionaries&quot; aria-label=&quot;Anchor link for: manipulating-dictionaries&quot;&gt;§&lt;&#x2F;a&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h1 id=&quot;unsafecoerce-em-all&quot;&gt;unsafeCoerce &#x27;em all&lt;a class=&quot;zola-anchor&quot; href=&quot;#unsafecoerce-em-all&quot; aria-label=&quot;Anchor link for: unsafecoerce-em-all&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
-&lt;p&gt;Now we should just check if passed constraint actually uses &lt;code&gt;Hold c&lt;&#x2F;code&gt; argument by passing &lt;code&gt;undefined&lt;&#x2F;code&gt;
-dictionary to it and check if exception occures. If it doesn&#x27;t, we would get &lt;code&gt;Dict c&lt;&#x2F;code&gt; and return it,
-otherwise the constraint doesn&#x27;t seem to be satisfied, so we simply return &lt;code&gt;Nothing&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
-&lt;p&gt;Everything we need is an &lt;code&gt;undefined&lt;&#x2F;code&gt; dictionary and a function to force the dictionary stored inside
-of &lt;code&gt;Dict&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
-&lt;p&gt;Speaking core we want something like this&lt;&#x2F;p&gt;
+&lt;p&gt;Now we need to check if passed constraint actually uses &lt;code&gt;Hold c&lt;&#x2F;code&gt; argument by passing a bottom-valued dictionary
+to it and checking if an exception occurs. If it doesn&#x27;t, we would get &lt;code&gt;Dict c&lt;&#x2F;code&gt; and return it, otherwise the constraint
+is probably unsatisfied and we return &lt;code&gt;Nothing&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;In other words, we need &lt;code&gt;undefined&lt;&#x2F;code&gt; and &lt;code&gt;seq&lt;&#x2F;code&gt; but for constraints, i.e.&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;errorDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
 errorDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; undefined
 
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;forceDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;()
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forceDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (@ c) (d &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;case&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; d &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;of &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;`seq` &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;()
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forceDict (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; d) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; d &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;`seq` &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;()
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Though in haskell we cannot manipulate the constraint directly, those functions can be defined
-easily using some &lt;code&gt;unsafeCoerce&lt;&#x2F;code&gt;s&lt;&#x2F;p&gt;
+&lt;p&gt;Of course, haskell doesn&#x27;t let us manipulate constraints directly, but there is nothing a couple of &lt;code&gt;unsafeCoerce&lt;&#x2F;code&gt;s
+couldn&#x27;t do:&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;newtype &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Gift&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Gift&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; { unGift &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; a }
 
@@ -175,7 +213,7 @@ errorDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forceDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; unGift @c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; unsafeCoerce (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;`seq` &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;()&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;)
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt;: Some explanations of this trick can be found e.g.
+&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; Some explanations of this trick can be found
 &lt;a href=&quot;https:&#x2F;&#x2F;www.schoolofhaskell.com&#x2F;user&#x2F;thoughtpolice&#x2F;using-reflection&quot;&gt;here&lt;&#x2F;a&gt; or
 &lt;a href=&quot;https:&#x2F;&#x2F;stackoverflow.com&#x2F;questions&#x2F;17793466&#x2F;black-magic-in-haskell-reflection&quot;&gt;here&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
@@ -201,107 +239,103 @@ errorDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#
       }
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; If you would look closely at &lt;code&gt;forceDict&lt;&#x2F;code&gt; you would probably immediately see an issue with
-it: if &lt;code&gt;c&lt;&#x2F;code&gt; is represented with newtype, e.g. is a single method class, &lt;code&gt;forceDict&lt;&#x2F;code&gt; would force
-that method instead of the dictionary. It would be very bad if method is bottom or expensive to
-compute. I don&#x27;t see any way to fix it so I would just hope that this case is corner enough to
-ignore.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; In fact, there is a problem with this implementation of &lt;code&gt;forceDict&lt;&#x2F;code&gt;: if &lt;code&gt;c&lt;&#x2F;code&gt; is represented with newtype, e.g.
+is a single method class, &lt;code&gt;forceDict&lt;&#x2F;code&gt; would force that method instead of forcing the dictionary. It would be very bad
+if method is bottom or expensive to compute. I don&#x27;t see any way to fix it so I would just hope that this case is
+corner enough to ignore.&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
-&lt;h1 id=&quot;actually-implementing-optionaldict&quot;&gt;Actually implementing optionalDict&lt;a class=&quot;zola-anchor&quot; href=&quot;#actually-implementing-optionaldict&quot; aria-label=&quot;Anchor link for: actually-implementing-optionaldict&quot;&gt;§&lt;&#x2F;a&gt;
+&lt;h1 id=&quot;the-rest-of-the-owl&quot;&gt;The rest of the owl&lt;a class=&quot;zola-anchor&quot; href=&quot;#the-rest-of-the-owl&quot; aria-label=&quot;Anchor link for: the-rest-of-the-owl&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
-&lt;p&gt;With everything defined above we can easily define our &lt;code&gt;optionalDict&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Now the definition of &lt;code&gt;optionalDict&lt;&#x2F;code&gt; is pretty straightforward&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
-&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;optionalDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c . (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Maybe&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c)
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;optionalDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c . &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Maybe&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c)
 optionalDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; unsafeDupablePerformIO &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; catch
   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;do&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; evaluate (forceDict c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Just&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c
   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;do &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;\&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;NoInstanceError &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; pure &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Nothing
   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
     &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
     c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; sub @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Hold&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) @c errorDict
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#5c6773;&quot;&gt;-- I&amp;#39;m actually not sure if NOINLINE is really needed, but there is &amp;#39;errorDict&amp;#39; inside
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#5c6773;&quot;&gt;-- I&amp;#39;m not sure if this NOINLINE is really needed, but there is &amp;#39;errorDict&amp;#39; inside
 -- so I want to be sure that ghc wouldn&amp;#39;t pass that dictionary somewhere else.
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;{-# &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;NOINLINE&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; optionalDict #-}
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;And some helpers for it&lt;&#x2F;p&gt;
+&lt;p&gt;But instead of working with &lt;code&gt;optionalDict&lt;&#x2F;code&gt; directly it is often simpler to use some combinators defined in terms of it,
+e.g.&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
-&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;isSatisfied &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c . (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Bool
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;isSatisfied &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c . &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Bool
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;isSatisfied &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; isJust &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; optionalDict @c
 
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;maybeC &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c r . (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;maybeC &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c r . &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
 maybeC d a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; maybe d (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;\&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; a) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; optionalDict @c
 
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;tryC &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c r . (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Maybe &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;tryC &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall c r . &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Maybe &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;r
 tryC a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; optionalDict @c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;&amp;gt; \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; a
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;And indeed they would work&lt;&#x2F;p&gt;
+&lt;p&gt;And indeed they would work:&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
-&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
-instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
+&lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo
 
-class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Bar &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Bar
 
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;main &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;IO &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;()
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;main &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;do
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;  print &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; isSatisfied @&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Foo
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;  print &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; isSatisfied @&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Bar
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;main :: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;IO&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; ()
+main = do
+  print $ isSatisfied @&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo
+  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;print $ isSatisfied @&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Bar
 
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;  print &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; tryC @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Show Bool&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; show &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;True
-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;  print &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; tryC @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Show&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Int&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;)) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; show &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; id @&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Int
+  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;print $ tryC @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#39bae6;&quot;&gt;Show &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Bool&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) $ show &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;True
+  &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;print $ tryC @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#39bae6;&quot;&gt;Show&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Int&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; -&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Int&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;)) $ show $ id @&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Int
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;outputs&lt;&#x2F;p&gt;
+&lt;p&gt;would print&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;True
 False
 Just &lt;&#x2F;span&gt;&lt;span style=&quot;color:#54e7cb;&quot;&gt;&amp;quot;True&amp;quot;
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Nothing
-&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;However there is a serious problem with this approach: since &lt;code&gt;Hold&lt;&#x2F;code&gt; is non-&lt;code&gt;{-# SOURCE #-}&lt;&#x2F;code&gt; imported,
-&lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; constraint is trivial and solving as soon as possible. That means that we cannot define a
-new function using &lt;code&gt;optionalDict&lt;&#x2F;code&gt; - its constraint would be immediately solved as trivial as we saw
-before.&lt;&#x2F;p&gt;
-&lt;p&gt;For example, we cannot move helpers to the &lt;code&gt;Main&lt;&#x2F;code&gt; module or define function &lt;code&gt;tryShow&lt;&#x2F;code&gt; to abstract
-pattern in the code above - such functions would never get an optional instance.&lt;&#x2F;p&gt;
-&lt;h1 id=&quot;delaying-solving-of-hold-c-c-constraint&quot;&gt;Delaying solving of &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; constraint&lt;a class=&quot;zola-anchor&quot; href=&quot;#delaying-solving-of-hold-c-c-constraint&quot; aria-label=&quot;Anchor link for: delaying-solving-of-hold-c-c-constraint&quot;&gt;§&lt;&#x2F;a&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;h1 id=&quot;late-resolution-for-optional-constraints&quot;&gt;Late resolution for optional constraints&lt;a class=&quot;zola-anchor&quot; href=&quot;#late-resolution-for-optional-constraints&quot; aria-label=&quot;Anchor link for: late-resolution-for-optional-constraints&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
-&lt;p&gt;If we stop for a minute now and think about possible semantic of optional constraints, we would see
-two different possibilities here:&lt;&#x2F;p&gt;
+&lt;p&gt;However there is a serious problem with the code as is: as &lt;code&gt;Hold&lt;&#x2F;code&gt; is non-&lt;code&gt;{-# SOURCE #-}&lt;&#x2F;code&gt; imported in user&#x27;s code, &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; constraint is trivial and is solved as soon as possible, meaning there is no way to define a new function with
+&lt;code&gt;Optionally&lt;&#x2F;code&gt; constraint - it would be solved immediately as trivial, and &lt;code&gt;optionalDict&lt;&#x2F;code&gt; would always be &lt;code&gt;Nothing&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;For example, we cannot move combinators defined above to the &lt;code&gt;Main&lt;&#x2F;code&gt; module. Likewise, there is no way to define &lt;code&gt;tryShow&lt;&#x2F;code&gt;
+to abstract pattern in the code above - such functions would always return &lt;code&gt;Nothing&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;If we stop for a minute now and think about possible semantic of optional constraints, we would see two different
+possibilities here:&lt;&#x2F;p&gt;
+&lt;p&gt;In fact, there is two possible behaviors of optional constraints:&lt;&#x2F;p&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;Optional constraints may be solved only when constraint is fully instantiated with concrete types,
-like &lt;code&gt;Typeable&lt;&#x2F;code&gt;, so we can accurate judge about its satisfibility. But that means that &lt;code&gt;c&lt;&#x2F;code&gt; no
-longer implies &lt;code&gt;Optionally c&lt;&#x2F;code&gt;, which is kind of strange.&lt;&#x2F;p&gt;
+&lt;p&gt;Optional constraints may be solved only when constraint is fully instantiated with concrete types, like &lt;code&gt;Typeable&lt;&#x2F;code&gt;, so
+is is possible to judge accurately about its satisfiability. Sadly, that means that &lt;code&gt;c&lt;&#x2F;code&gt; no longer implies &lt;code&gt;Optionally c&lt;&#x2F;code&gt;, which is kind of weird.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
 &lt;li&gt;
-&lt;p&gt;Optional constraints may be solved immediately if not written explicitly in type signatures,
-marking constraint as unsatisfied if it is in current form.&lt;&#x2F;p&gt;
+&lt;p&gt;Optional constraints may be solved immediately if not written explicitly in type signatures, like &lt;code&gt;HasCallStack&lt;&#x2F;code&gt;,
+solving constraint as unsatisfied if it couldn&#x27;t be solved in its current form.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
 &lt;&#x2F;ul&gt;
-&lt;p&gt;I would probably prefer the former, because eager solving of optional constraints &amp;quot;breaks&amp;quot; type
-inference: if we would write &lt;code&gt;foo = bar&lt;&#x2F;code&gt;, &lt;code&gt;foo&lt;&#x2F;code&gt; may behave differently than &lt;code&gt;bar&lt;&#x2F;code&gt; which I really
-want to avoid. So we would delay solving of &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; constraints as long as possible, until &lt;code&gt;c&lt;&#x2F;code&gt;
-is fully instantiated.&lt;&#x2F;p&gt;
-&lt;p&gt;First, let me define a synonym for it&lt;&#x2F;p&gt;
+&lt;p&gt;Following the specification given at the beginning of this post, I would implement the first option, because eager
+solving means that let-binding some subexpression can change behavior of the program, for example with &lt;code&gt;foo = bar&lt;&#x2F;code&gt;,
+&lt;code&gt;foo&lt;&#x2F;code&gt; may behave differently than &lt;code&gt;bar&lt;&#x2F;code&gt; which I really want to avoid.&lt;&#x2F;p&gt;
+&lt;p&gt;The goal is thus to delay solving of &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; constraints until &lt;code&gt;c&lt;&#x2F;code&gt; is fully instantiated.&lt;&#x2F;p&gt;
+&lt;p&gt;Let me begin with defining a constraint synonym for &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c =&amp;gt; c) =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
 instance&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Now we just need a way to prevent &lt;code&gt;Optionally&lt;&#x2F;code&gt; synonym from simplifying to &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; as long as
-possible. Sounds familiar to you? That&#x27;s exactly what &lt;a href=&quot;https:&#x2F;&#x2F;blog.csongor.co.uk&#x2F;opaque-constraint-synonyms&#x2F;&quot;&gt;opaque constraint
-synonyms&lt;&#x2F;a&gt; trick does!&lt;&#x2F;p&gt;
-&lt;p&gt;The trick is to introduce an overlapping instance for &lt;code&gt;Optionally&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Now we just need a way to prevent &lt;code&gt;Optionally&lt;&#x2F;code&gt; from reducing to &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; as long as possible. Sounds familiar?
+That&#x27;s exactly what &lt;a href=&quot;https:&#x2F;&#x2F;blog.csongor.co.uk&#x2F;opaque-constraint-synonyms&#x2F;&quot;&gt;opaque constraint synonyms&lt;&#x2F;a&gt; trick does!&lt;&#x2F;p&gt;
+&lt;p&gt;The solution is to introduce an overlapping instance for &lt;code&gt;Optionally&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dummy &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
 instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;{-# &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;OVERLAPPING&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; #-} (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold Dummy &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dummy&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally Dummy &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; If you prefer the second semantic out of two mentioned above just replace all occurences of
-&lt;code&gt;OVERLAPPING&lt;&#x2F;code&gt; with &lt;code&gt;INCOHERENT&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; It is possible to use &lt;code&gt;INCOHERENT&lt;&#x2F;code&gt; instead of &lt;code&gt;OVERLAPPING&lt;&#x2F;code&gt; here - that way we would have eager solving of
+optional constraint as described above.&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
-&lt;p&gt;Now ghc cannot simplify &lt;code&gt;Optionally c&lt;&#x2F;code&gt; to &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt;, because until &lt;code&gt;c&lt;&#x2F;code&gt; is instantiated, ghc does not know
-which instance should it choose, even though they are completely equivalent.&lt;&#x2F;p&gt;
-&lt;p&gt;But in our case it is not enough: this instance prevents only &lt;code&gt;Optionally c&lt;&#x2F;code&gt; from being solved.
-Something like &lt;code&gt;Optionally (Show a)&lt;&#x2F;code&gt; would be expanded as &lt;code&gt;Show a&lt;&#x2F;code&gt; does not overlap with &lt;code&gt;Dummy&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
-&lt;p&gt;Instead we need something like this&lt;&#x2F;p&gt;
+&lt;p&gt;Now ghc cannot reduce &lt;code&gt;Optionally c&lt;&#x2F;code&gt; to &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; until &lt;code&gt;c&lt;&#x2F;code&gt; is fully instantiated, because ghc does not know which
+instance should it choose (even though they are completely equivalent).&lt;&#x2F;p&gt;
+&lt;p&gt;But in our case it is not enough: this instance prevents only &lt;code&gt;Optionally c&lt;&#x2F;code&gt; from being solved. Something like
+&lt;code&gt;Optionally (Show a)&lt;&#x2F;code&gt; would be expanded as &lt;code&gt;Show a&lt;&#x2F;code&gt; does not overlap with &lt;code&gt;Dummy&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;p&gt;Luckily, this can be solved with some more dummy instances like this&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;data&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; family &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Any &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; k
 
@@ -313,17 +347,22 @@ instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;{-# &lt;
 instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;{-# &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;OVERLAPPING&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; #-} (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (f (g &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Any &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;a) z) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;f (g &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Any &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;a) z) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (f (g &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Any &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;a) z) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;...
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Now those instances make constraints like &lt;code&gt;Optionaly (Show a)&lt;&#x2F;code&gt;, &lt;code&gt;Optionally (Show [a])&lt;&#x2F;code&gt;,
-&lt;code&gt;Optionally (MonadReader r m)&lt;&#x2F;code&gt; ambiguous.&lt;&#x2F;p&gt;
-&lt;p&gt;I hope nobody uses classes or types with more than 10 type parameters, so I&#x27;ve just generated 100
-such instances with &lt;code&gt;CPP&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Those instances are enough to make complex constraints like &lt;code&gt;Optionaly (Show a)&lt;&#x2F;code&gt;, &lt;code&gt;Optionally (Show [a])&lt;&#x2F;code&gt;, &lt;code&gt;Optionally (MonadReader r m)&lt;&#x2F;code&gt; ambiguous.&lt;&#x2F;p&gt;
+&lt;p&gt;I really hope that nobody uses classes or types with more than 10 type parameters, so I&#x27;ve just generated 100 such
+instances with CPP.&lt;&#x2F;p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;UPDATE&lt;&#x2F;strong&gt; Unfortunately, these instances are not enough to make constraints involving deeply nested types ambiguous,
+for example &lt;code&gt;Optionally (Show [[a]])&lt;&#x2F;code&gt; would be resolved immediately even with dummy instances above. To make such
+constraints ambiguous we need more dummy instances with deeper nesting of &lt;code&gt;Any&lt;&#x2F;code&gt;, like &lt;code&gt;Optionally (f (g1 (g2 Any)))&lt;&#x2F;code&gt;,
+&lt;code&gt;Optionally (f (g1 (g2 Any x)))&lt;&#x2F;code&gt;, etc.&lt;&#x2F;p&gt;
+&lt;&#x2F;blockquote&gt;
 &lt;p&gt;After we update &lt;code&gt;optionalDict&lt;&#x2F;code&gt; and helpers to use &lt;code&gt;Optionally&lt;&#x2F;code&gt;, we can easily write functions like&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;tryShow &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall a . &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Show &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;a) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Maybe String
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;tryShow a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; tryC @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Show&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; a) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; show a
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;in &lt;code&gt;Main&lt;&#x2F;code&gt; and the resolution of &lt;code&gt;Optionally (Show a)&lt;&#x2F;code&gt; would be delayed until &lt;code&gt;a&lt;&#x2F;code&gt; would be instantiated with
-some concrete type, so &lt;code&gt;tryShow&lt;&#x2F;code&gt; can be used like this&lt;&#x2F;p&gt;
+&lt;p&gt;in &lt;code&gt;Main&lt;&#x2F;code&gt; and the resolution of &lt;code&gt;Optionally (Show a)&lt;&#x2F;code&gt; would be delayed until &lt;code&gt;a&lt;&#x2F;code&gt; would be instantiated with some
+concrete type, so &lt;code&gt;tryShow&lt;&#x2F;code&gt; can be used like this&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;main &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;IO &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;()
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;main &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;do
@@ -335,9 +374,8 @@ some concrete type, so &lt;code&gt;tryShow&lt;&#x2F;code&gt; can be used like th
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Just &lt;&#x2F;span&gt;&lt;span style=&quot;color:#54e7cb;&quot;&gt;&amp;quot;True&amp;quot;
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Nothing
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Now &lt;code&gt;Optionally&lt;&#x2F;code&gt; constraints aren&#x27;t solved until fully instantiated, which is in my opinion good
-default, but solving them eagerly can be useful too, so let&#x27;s just provide functions to give or
-discard &lt;code&gt;Optionally&lt;&#x2F;code&gt; constraint manually&lt;&#x2F;p&gt;
+&lt;p&gt;Late resolution of optional constraints is in my opinion a good default, but solving them eagerly can be useful too, so
+we can provide functions to give or discard &lt;code&gt;Optionally&lt;&#x2F;code&gt; constraint manually&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;newtype &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;GiftQ&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c d a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;GiftQ&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; { unGiftQ &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; d) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; a }
 
@@ -348,26 +386,25 @@ give f &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F
 discard f &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; unGiftQ @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Hold&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) @c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; unsafeCoerce (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Gift&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; @(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Optionally&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) f)
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
 &lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; This way we could also define &lt;code&gt;resolve&lt;&#x2F;code&gt; to turn &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; into &lt;code&gt;Optionally c&lt;&#x2F;code&gt;, but
-&lt;code&gt;resolve&lt;&#x2F;code&gt; would have an unpredictible semantic, e.g. &lt;code&gt;Show a&lt;&#x2F;code&gt; wouldn&#x27;t imply &lt;code&gt;Optionally (Show [a])&lt;&#x2F;code&gt;,
-so I omit it here.&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;strong&gt;NOTE&lt;&#x2F;strong&gt; This way we could also define &lt;code&gt;resolve&lt;&#x2F;code&gt; to turn &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; into &lt;code&gt;Optionally c&lt;&#x2F;code&gt;, but it would have an
+unpredictible behaviour, e.g. &lt;code&gt;Show a&lt;&#x2F;code&gt; wouldn&#x27;t imply &lt;code&gt;Optionally (Show [a])&lt;&#x2F;code&gt;, so I prefer to omit it here.&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
-&lt;h1 id=&quot;dangers-of-hold-c-c&quot;&gt;Dangers of &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt;&lt;a class=&quot;zola-anchor&quot; href=&quot;#dangers-of-hold-c-c&quot; aria-label=&quot;Anchor link for: dangers-of-hold-c-c&quot;&gt;§&lt;&#x2F;a&gt;
+&lt;h1 id=&quot;dangers-of-hold-c-c&quot;&gt;Dangers of Hold c =&amp;gt; c&lt;a class=&quot;zola-anchor&quot; href=&quot;#dangers-of-hold-c-c&quot; aria-label=&quot;Anchor link for: dangers-of-hold-c-c&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
-&lt;p&gt;Playing with this I found some interesting thing: how do you think, what would ghc say if we would
-write incorrect version of &lt;code&gt;tryShow&lt;&#x2F;code&gt; like that&lt;&#x2F;p&gt;
+&lt;p&gt;Playing with the implementation, I found some interesting case: what do you think would ghc say if we would write
+incorrect version of &lt;code&gt;tryShow&lt;&#x2F;code&gt; like this&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;tryShow &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall a . &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Show &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;a) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;a &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;String
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;tryShow &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; show
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;You would probably expect this function to give &lt;code&gt;Could not deduce (Show a) ...&lt;&#x2F;code&gt; error, but this code
-actually typechecks and with &lt;code&gt;main&lt;&#x2F;code&gt; above prints&lt;&#x2F;p&gt;
+&lt;p&gt;You probably would expect this function to give &lt;code&gt;Could not deduce (Show a) ...&lt;&#x2F;code&gt; error, but in fact this code typechecks
+and with &lt;code&gt;main&lt;&#x2F;code&gt; above prints&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#54e7cb;&quot;&gt;&amp;quot;True&amp;quot;
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;optionally&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;example&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;: &amp;lt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;loop&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;&amp;gt;&amp;gt;
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;I was pretty confused by this but after some struggling I found that given constraint &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt;
-ghc can easily derive &lt;code&gt;c&lt;&#x2F;code&gt;! Using that trick we can &amp;quot;prove&amp;quot; absolutely anything with code like&lt;&#x2F;p&gt;
+&lt;p&gt;This was really confusing but after some struggling I found out that given the constraint &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; ghc willingly
+derives &lt;code&gt;c&lt;&#x2F;code&gt;! Using that trick we can &amp;quot;prove&amp;quot; absolutely anything with code like&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c =&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
 instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
@@ -380,8 +417,7 @@ anythingDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt
     &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;go &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Hold &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
     go &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;Of course, it is impossible to get a dictionary for any class out of nothing so generated core simply
-loops&lt;&#x2F;p&gt;
+&lt;p&gt;Of course, it is impossible to get a dictionary for any class out of nothing, so generated code simply loops:&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Rec&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; {
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;dHold_rxi &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; forall {c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Constraint&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;. &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Hold&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c
@@ -391,53 +427,52 @@ end &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Rec&lt;&#x2F;
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;anythingDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;forall (c :: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Constraint&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;). &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Dict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
 anythingDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;= \&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (@c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;-&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Dict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;$&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;dHold_rxi &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;`cast` &amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Co&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;)
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;That is in fact &lt;a href=&quot;https:&#x2F;&#x2F;gitlab.haskell.org&#x2F;ghc&#x2F;ghc&#x2F;-&#x2F;issues&#x2F;19690&quot;&gt;a bug&lt;&#x2F;a&gt;: ghc isn&#x27;t supposed to
-generate bottom dictionaries but with &lt;code&gt;UndecidableSuperClasses&lt;&#x2F;code&gt; and &lt;code&gt;QuantifiedConstraints&lt;&#x2F;code&gt; it&#x27;s
-possible to get one.&lt;&#x2F;p&gt;
-&lt;p&gt;Luckily in our case we can easily workaround this. The constraint &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; is available in
-&lt;code&gt;tryShow&lt;&#x2F;code&gt; as superclass of &lt;code&gt;Optionally c&lt;&#x2F;code&gt;, but we don&#x27;t really need it to be one. Instead we can
-make &lt;code&gt;Optionally&lt;&#x2F;code&gt; hold &lt;code&gt;Dict&lt;&#x2F;code&gt; of that superclass.&lt;&#x2F;p&gt;
+&lt;p&gt;That is in fact &lt;a href=&quot;https:&#x2F;&#x2F;gitlab.haskell.org&#x2F;ghc&#x2F;ghc&#x2F;-&#x2F;issues&#x2F;19690&quot;&gt;a bug&lt;&#x2F;a&gt; in ghc: it isn&#x27;t supposed to produce a
+bottom-valued dictionaries, yet with &lt;code&gt;UndecidableSuperClasses&lt;&#x2F;code&gt; and &lt;code&gt;QuantifiedConstraints&lt;&#x2F;code&gt; it&#x27;s possible to trick ghc
+into getting one.&lt;&#x2F;p&gt;
+&lt;p&gt;Luckily in our case there exists a simple workaround: the problematic constraint &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; is available in &lt;code&gt;tryShow&lt;&#x2F;code&gt;
+as superclass of &lt;code&gt;Optionally c&lt;&#x2F;code&gt;, but it doesn&#x27;t really have to be one. Instead, we would store that constraint wrapped
+in &lt;code&gt;Dict&lt;&#x2F;code&gt; as a method of &lt;code&gt;Optionally&lt;&#x2F;code&gt;:&lt;&#x2F;p&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;data &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;HoldDict&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; (&lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;Hold&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; c) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;HoldDict
 
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Optionally &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where
   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ffb454;&quot;&gt;optionallyHoldDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;HoldDict &lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt;c
 &lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
-&lt;p&gt;With instances of &lt;code&gt;Optionally&lt;&#x2F;code&gt;, &lt;code&gt;optionalDict&lt;&#x2F;code&gt; and other functions changed to match these changes,
-incorrect version of &lt;code&gt;tryShow&lt;&#x2F;code&gt; would be rejected with &lt;code&gt;Could not deduce (Show a)&lt;&#x2F;code&gt; but written
-correct, everything would work as it used to.&lt;&#x2F;p&gt;
+&lt;p&gt;Now to access &lt;code&gt;Hold c =&amp;gt; c&lt;&#x2F;code&gt; constraint one should explicitly match on &lt;code&gt;optionallyHoldDict&lt;&#x2F;code&gt;s result, which is impossible
+for user to do as it isn&#x27;t exported. With everything updated to match these changes, incorrect version of &lt;code&gt;tryShow&lt;&#x2F;code&gt;
+above would be rejected with &lt;code&gt;Could not deduce (Show a)&lt;&#x2F;code&gt; as expected, whereas the correct version would work as it
+used to.&lt;&#x2F;p&gt;
 &lt;h1 id=&quot;limitations&quot;&gt;Limitations&lt;a class=&quot;zola-anchor&quot; href=&quot;#limitations&quot; aria-label=&quot;Anchor link for: limitations&quot;&gt;§&lt;&#x2F;a&gt;
 &lt;&#x2F;h1&gt;
-&lt;p&gt;I don&#x27;t think this trick should be ever used in practice because it has a lot of problems:&lt;&#x2F;p&gt;
+&lt;p&gt;I don&#x27;t think this trick should be ever used in practice due to the number of shortcomings:&lt;&#x2F;p&gt;
 &lt;ul&gt;
 &lt;li&gt;
-&lt;p&gt;It relies heavily on ghc&#x27;s unspecified behaviour, and while representation of instances as
-dictionaries is in my opinion reliable enough, the fact that ghc prefers global dictionaries to
-local one isn&#x27;t.&lt;&#x2F;p&gt;
+&lt;p&gt;It relies heavily on ghc&#x27;s &lt;code&gt;-fsolve-constant-dicts&lt;&#x2F;code&gt; optimizations. While representation of instances as dictionaries
+and reflection trick is in my opinion reliable enough, the fact that ghc prefers global dictionaries to local one
+isn&#x27;t, and in fact the whole thing wouldn&#x27;t work with &lt;code&gt;-O0&lt;&#x2F;code&gt; unless &lt;code&gt;-fsolve-constant-dicts&lt;&#x2F;code&gt; is explicitly enabled.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
 &lt;li&gt;
-&lt;p&gt;Without optimisations ghc wouldn&#x27;t solve constraints that way so the whole trick works only with
-&lt;code&gt;-O&lt;&#x2F;code&gt;. It wouldn&#x27;t work in ghci without &lt;code&gt;-fobject-code&lt;&#x2F;code&gt; enabled for example.&lt;&#x2F;p&gt;
+&lt;p&gt;It break on newtype-represented classes if bottom is stored as a method, as mentioned above. For example, with the
+code below &lt;code&gt;isSatisfied @Foo&lt;&#x2F;code&gt; would result in exception thrown instead of &lt;code&gt;True&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
-&lt;li&gt;
-&lt;p&gt;It can break on newtype represented classes if bottom is stored as a method, as it was said in the
-&amp;quot;manipulating constraint&amp;quot; section. In that example, &lt;code&gt;isSatisfied @Foo&lt;&#x2F;code&gt; would result in exception
-thrown.&lt;&#x2F;p&gt;
+&lt;&#x2F;ul&gt;
 &lt;pre style=&quot;background-color:#1c1b29;&quot;&gt;
 &lt;code class=&quot;language-haskell&quot; data-lang=&quot;haskell&quot;&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;class &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;:: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29718;&quot;&gt;()
 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;instance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#8ec87c;&quot;&gt;Foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#ff7733;&quot;&gt;where&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; foo &lt;&#x2F;span&gt;&lt;span style=&quot;color:#f29668;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#bfbab0;&quot;&gt; undefined
-&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;&lt;&#x2F;li&gt;
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;ul&gt;
 &lt;li&gt;
 &lt;p&gt;It doesn&#x27;t work with &lt;code&gt;~&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
 &lt;li&gt;
-&lt;p&gt;It gives some performance overhead: even if we would inline &lt;code&gt;optionalDict&lt;&#x2F;code&gt; (which I&#x27;m not sure is
-safe), it uses &lt;code&gt;unsafePerformIO&lt;&#x2F;code&gt; and &lt;code&gt;unsafeCoerce&lt;&#x2F;code&gt; that would prevent another optimisations.&lt;&#x2F;p&gt;
+&lt;p&gt;It introduces some overhead: even if &lt;code&gt;optionalDict&lt;&#x2F;code&gt; would be inlined (which I&#x27;m not sure is safe), it uses
+&lt;code&gt;unsafeDupablePerformIO&lt;&#x2F;code&gt; and &lt;code&gt;unsafeCoerce&lt;&#x2F;code&gt; which would likely prevent further optimizations.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
 &lt;li&gt;
-&lt;p&gt;It breaks the open world assumption: if there exists an unimported orphan instance for &lt;code&gt;c&lt;&#x2F;code&gt;, it would
-not be detected by &lt;code&gt;optionalDict&lt;&#x2F;code&gt;. This seems to be a general problem of optional constraints
-rather than this concrete approach through.&lt;&#x2F;p&gt;
+&lt;p&gt;It breaks the open world assumption: if there exists an unimported orphan instance for &lt;code&gt;c&lt;&#x2F;code&gt;, it would not be detected
+by &lt;code&gt;optionalDict&lt;&#x2F;code&gt;. This seems to be a general problem of optional constraints rather than this specific approach
+through.&lt;&#x2F;p&gt;
 &lt;&#x2F;li&gt;
 &lt;li&gt;
 &lt;p&gt;And probably some another problems I&#x27;m not aware of yet.&lt;&#x2F;p&gt;
@@ -447,13 +482,13 @@ rather than this concrete approach through.&lt;&#x2F;p&gt;
 &lt;&#x2F;h1&gt;
 &lt;blockquote&gt;
 &lt;p&gt;I think this all is as awful as fun. Awfun.&lt;&#x2F;p&gt;
-&lt;p&gt;effectfully, &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;effectfully-ou&#x2F;sketches&#x2F;tree&#x2F;master&#x2F;poly-type-of-saga&#x2F;part1-try-unify&quot;&gt;automatically detecting and instantiating
+&lt;p&gt;@effectfully, &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;effectfully-ou&#x2F;sketches&#x2F;tree&#x2F;master&#x2F;poly-type-of-saga&#x2F;part1-try-unify&quot;&gt;automatically detecting and instantiating
 polymorphism&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
 &lt;&#x2F;blockquote&gt;
-&lt;p&gt;This quote perfectly describes how do I feel about this trick. It is elegant and beautiful
-in some way, but at the same time it&#x27;s terrible.&lt;&#x2F;p&gt;
-&lt;p&gt;Still taking this as a challenge I really enjoyed making it work, and hope you enjoyed reading
-about it, despite my writing being a mess.&lt;&#x2F;p&gt;
+&lt;p&gt;This quote perfectly describes how do I feel about this trick: it is elegant and beautiful in some way, but at the same
+time it&#x27;s terrible.&lt;&#x2F;p&gt;
+&lt;p&gt;Still, taking this as a challenge it was really interesting to make it work, and hope you enjoyed reading about it
+despite my writing being a mess.&lt;&#x2F;p&gt;
 &lt;p&gt;Final code as well as some usage examples can be found at &lt;a href=&quot;https:&#x2F;&#x2F;github.com&#x2F;aadaa-fgtaa&#x2F;optionally&quot;&gt;github&lt;&#x2F;a&gt;.&lt;&#x2F;p&gt;
 </description>
         </item>
